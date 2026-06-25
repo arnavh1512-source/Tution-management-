@@ -7,8 +7,8 @@ export function LoginScreen() {
 
   return (
     <div className="animate-[pop_.35s_ease] px-6 pt-10 pb-6 min-h-[700px] flex flex-col">
-      <div className="w-[60px] h-[60px] rounded-[18px] flex items-center justify-center text-white font-extrabold text-2xl mb-[22px]" style={{ background: 'linear-gradient(135deg,#2a6fdb,#5a93ef)' }}>A</div>
-      <div className="text-[26px] font-extrabold text-td-dark tracking-tight">Acharya Tuition</div>
+      <div className="w-[60px] h-[60px] rounded-[18px] flex items-center justify-center text-white font-extrabold text-2xl mb-[22px]" style={{ background: 'linear-gradient(135deg,#2a6fdb,#5a93ef)' }}>S</div>
+      <div className="text-[26px] font-extrabold text-td-dark tracking-tight">Second School</div>
       <div className="text-sm text-td-muted mt-2 leading-relaxed">Sign in to continue. Choose how you&apos;re using the app — we&apos;ll set up the right experience for you.</div>
 
       {googleEmail && (

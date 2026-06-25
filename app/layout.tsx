@@ -9,8 +9,8 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Acharya Tuition',
-  description: 'Tuition management — attendance, results, fees, rankings & more.',
+  title: 'Second School',
+  description: 'Second School — attendance, results, fees, rankings & more.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
