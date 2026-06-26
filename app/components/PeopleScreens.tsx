@@ -143,7 +143,8 @@ export function AddStudentScreen() {
 }
 
 export function StaffScreen() {
-  const { teachers, origin, back, go } = useDashboard()
+  const { teachers, origin, back, go, set, searchQuery } = useDashboard()
+  const filtered = searchQuery ? teachers.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.subject.toLowerCase().includes(searchQuery.toLowerCase())) : teachers
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -157,11 +158,16 @@ export function StaffScreen() {
         </button>
       </div>
 
-      {teachers.length === 0 ? (
-        <div className="text-center text-td-muted text-sm py-8">No teachers added yet</div>
+      <div className="flex items-center gap-[11px] bg-white border border-td-border rounded-2xl p-[11px] px-[15px] mb-4">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input value={searchQuery} onChange={e => set({ searchQuery: e.target.value })} placeholder="Search staff..." className="flex-1 text-[13.5px] text-td-dark outline-none bg-transparent" />
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">{searchQuery ? 'No matches' : 'No teachers added yet'}</div>
       ) : (
         <div className="flex flex-col gap-3">
-          {teachers.map((t, i) => (
+          {filtered.map((t, i) => (
             <div key={t.name + i} className="bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-3.5">
               <div className="w-[52px] h-[52px] rounded-2xl shrink-0 flex items-center justify-center text-white font-extrabold text-[17px]" style={{ background: GRADIENTS[i % GRADIENTS.length] }}>{initials(t.name)}</div>
               <div className="flex-1 min-w-0">
