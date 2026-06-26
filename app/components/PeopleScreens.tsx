@@ -110,7 +110,28 @@ export function EditStudentScreen() {
 }
 
 export function AddStudentScreen() {
-  const { go, newStudent, setNewStudent, addStudent, branchesList } = useDashboard()
+  const { go, newStudent, setNewStudent, addStudent, branchesList, lastAddedCode, set, notify } = useDashboard()
+
+  if (lastAddedCode) {
+    return (
+      <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6 flex flex-col items-center justify-center min-h-[450px]">
+        <div className="w-[72px] h-[72px] rounded-[22px] bg-[#e7f5ee] flex items-center justify-center mb-5">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2fa36b" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div className="text-[18px] font-extrabold text-td-dark mb-2">Student added!</div>
+        <div className="text-[13px] text-td-muted text-center leading-relaxed mb-5 max-w-[280px]">Share this code with the student so they can link their account.</div>
+        <div className="w-full max-w-[280px] border-2 border-dashed border-td-primary bg-[#eaf1fc] rounded-[16px] p-4 text-center mb-5">
+          <div className="text-[11px] font-bold text-td-muted mb-1">STUDENT LINK CODE</div>
+          <div className="text-[24px] font-extrabold text-td-primary tracking-[0.15em]">{lastAddedCode}</div>
+        </div>
+        <button onClick={() => { navigator.clipboard.writeText(lastAddedCode); notify('Code copied!') }} className="w-full max-w-[280px] border border-td-primary bg-white text-td-primary text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer mb-3 flex items-center justify-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy code
+        </button>
+        <button onClick={() => { set({ lastAddedCode: '' }); go('students', 'students') }} className="w-full max-w-[280px] border-none bg-td-primary text-white text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer">Done</button>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
