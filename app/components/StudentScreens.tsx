@@ -12,6 +12,10 @@ export function StuHomeScreen() {
   if (!currentStudentDbId) {
     return (
       <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6 flex flex-col items-center justify-center min-h-[450px]">
+        <button onClick={() => go('home', 'home')} className="self-start border-none bg-transparent cursor-pointer flex items-center gap-1.5 text-td-muted text-[13px] font-bold mb-6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7689" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Back
+        </button>
         <div className="w-[72px] h-[72px] rounded-[22px] bg-[#eaf1fc] flex items-center justify-center mb-5">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
