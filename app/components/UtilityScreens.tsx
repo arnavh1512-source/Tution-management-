@@ -292,7 +292,6 @@ export function MoreScreen() {
     { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings' },
     { icon: '🏢', label: 'Branches', tint: '#eef0fc', screen: 'branches' },
     { icon: '📖', label: 'Subjects', tint: '#eaf1fc', screen: 'subjects' },
-    { icon: '💎', label: 'Subscription', tint: '#fcf3e3', screen: 'subscription' },
   ]
 
   return (
