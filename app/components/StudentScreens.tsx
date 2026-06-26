@@ -1,11 +1,28 @@
 'use client'
 
+import { useState } from 'react'
 import { useDashboard, GRADIENTS, initials, av, stuGrade } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function StuHomeScreen() {
-  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData } = useDashboard()
+  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, linkStudentProfile } = useDashboard()
+  const [linkCode, setLinkCode] = useState('')
   const me = students.find(s => s.dbId === currentStudentDbId)
+
+  if (!currentStudentDbId) {
+    return (
+      <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6 flex flex-col items-center justify-center min-h-[450px]">
+        <div className="w-[72px] h-[72px] rounded-[22px] bg-[#eaf1fc] flex items-center justify-center mb-5">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div className="text-[18px] font-extrabold text-td-dark mb-2">Link your account</div>
+        <div className="text-[13px] text-td-muted text-center leading-relaxed mb-6 max-w-[280px]">Enter the student code your teacher gave you to link your account and see your data.</div>
+        <input value={linkCode} onChange={e => setLinkCode(e.target.value.toUpperCase())} placeholder="e.g. TUT-1234" className="w-full max-w-[260px] border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-wider font-bold mb-4" />
+        <PrimaryButton onClick={() => linkStudentProfile(linkCode)}>Link account</PrimaryButton>
+      </div>
+    )
+  }
+
   const displayName = me?.name ?? googleEmail?.split('@')[0] ?? 'Student'
   const ini = initials(displayName)
   const attendancePct = stuAttendanceLog.length > 0

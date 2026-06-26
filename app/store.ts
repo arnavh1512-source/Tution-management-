@@ -80,6 +80,7 @@ interface Actions {
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   addBranch: (name: string, address: string, isMain: boolean) => void
   addSubject: (name: string) => void
+  linkStudentProfile: (code: string) => void
   setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
@@ -342,6 +343,19 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     }
     set({ subjects: [...list, item] })
     get().notify(`Subject "${name}" added`)
+  },
+
+  linkStudentProfile: async (code) => {
+    const { supabaseUserId, students, liveMode } = get()
+    if (!supabaseUserId) { get().notify('Not signed in'); return }
+    const student = students.find(s => s.id.toLowerCase() === code.trim().toLowerCase())
+    if (!student) { get().notify('Invalid student code'); return }
+    if (!student.dbId) { get().notify('Student record not synced'); return }
+    if (liveMode) {
+      await supabase.from('students').update({ profile_id: supabaseUserId }).eq('id', student.dbId)
+    }
+    set({ currentStudentDbId: student.dbId })
+    get().notify(`Account linked to ${student.name}`)
   },
 
   setAdminPin: (pin) => {
