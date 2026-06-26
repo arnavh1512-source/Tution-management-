@@ -74,6 +74,7 @@ interface Actions {
   saveMeeting: (title: string, type: string, date: string, time: string) => void
   saveAssignment: (title: string, subject: string, klass: string, dueDate: string, instructions: string) => void
   saveReminder: (type: string, message: string, targetClass: string) => void
+  saveStudentProfile: () => void
   setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
@@ -244,6 +245,24 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabase.from('reminders').insert({ type, message, target_class: targetClass }).then(() => {})
     }
     get().notify(`${type} reminder sent`)
+  },
+
+  saveStudentProfile: () => {
+    const { stuEdit, currentStudentDbId, students, liveMode } = get()
+    const idx = students.findIndex(s => s.dbId === currentStudentDbId)
+    if (idx < 0) { get().notify('No student profile linked'); return }
+    const updated = { ...students[idx] }
+    if (stuEdit.name.trim()) updated.name = stuEdit.name.trim()
+    if (stuEdit.parentNumber.trim()) updated.parent = stuEdit.parentNumber.trim()
+    if (stuEdit.address.trim()) updated.address = stuEdit.address.trim()
+    if (liveMode && currentStudentDbId) {
+      supabase.from('students').update({
+        name: updated.name, parent_contact: updated.parent, address: updated.address,
+      }).eq('id', currentStudentDbId).then(() => {})
+    }
+    const arr = [...students]; arr[idx] = updated
+    set({ students: arr, stuEdit: { name: '', parentNumber: '', address: '' } })
+    get().notify('Profile updated'); get().go('stuProfile', 'stuProfile')
   },
 
   setAdminPin: (pin) => {

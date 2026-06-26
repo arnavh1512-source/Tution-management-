@@ -494,7 +494,7 @@ export function StuProfileScreen() {
 }
 
 export function StuEditProfileScreen() {
-  const { stuEdit, go, set, notify, students, currentStudentDbId, stuResults, googleEmail } = useDashboard()
+  const { stuEdit, go, set, notify, students, currentStudentDbId, stuResults, googleEmail, saveStudentProfile } = useDashboard()
   const me = students.find(s => s.dbId === currentStudentDbId)
   const displayName = me?.name ?? googleEmail?.split('@')[0] ?? 'Student'
   const ini = initials(displayName)
@@ -539,7 +539,7 @@ export function StuEditProfileScreen() {
         </div>
       </div>
 
-      <PrimaryButton onClick={() => { notify('Profile updated'); go('stuProfile', 'stuProfile') }}>Save changes</PrimaryButton>
+      <PrimaryButton onClick={saveStudentProfile}>Save changes</PrimaryButton>
     </div>
   )
 }
