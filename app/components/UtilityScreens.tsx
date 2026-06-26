@@ -5,23 +5,68 @@ import { useDashboard, PLAN_META, PLAN_PERKS, initials, av, feeColor, type Scree
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function FeesScreen() {
-  const { students, back, notify } = useDashboard()
+  const { students, back, notify, addFee, toggleFeeStatus } = useDashboard()
+  const [showForm, setShowForm] = useState(false)
+  const [selStudent, setSelStudent] = useState('')
+  const [amount, setAmount] = useState('')
+  const [period, setPeriod] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const paidCount = students.filter(s => s.feeStatus === 'Paid').length
+  const pendingCount = students.filter(s => s.feeStatus !== 'Paid').length
   const rows = [...students.filter(d => d.feeStatus !== 'Paid'), ...students.filter(d => d.feeStatus === 'Paid')]
+
+  const handleAdd = () => {
+    if (!selStudent) { notify('Select a student'); return }
+    const amt = Number(amount)
+    if (!amt || amt <= 0) { notify('Enter a valid amount'); return }
+    if (!period.trim()) { notify('Enter the fee period'); return }
+    if (!dueDate) { notify('Select a due date'); return }
+    addFee(selStudent, amt, period.trim(), dueDate)
+    setSelStudent(''); setAmount(''); setPeriod(''); setDueDate(''); setShowForm(false)
+  }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <ScreenHeader title="Fees" onBack={back} />
+      <ScreenHeader title="Fees" onBack={back} right={
+        <button onClick={() => setShowForm(f => !f)} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+          <span className="text-base leading-none">{showForm ? '×' : '+'}</span> {showForm ? 'Close' : 'Add fee'}
+        </button>
+      } />
 
       <div className="flex gap-2.5 mb-[18px]">
         <div className="flex-1 bg-[#e7f5ee] rounded-2xl p-3.5">
-          <div className="text-[22px] font-extrabold text-td-green">{students.filter(s => s.feeStatus === 'Paid').length}</div>
+          <div className="text-[22px] font-extrabold text-td-green">{paidCount}</div>
           <div className="text-[11px] text-[#5a8a72] font-semibold mt-[3px]">Paid</div>
         </div>
         <div className="flex-1 bg-[#fdecea] rounded-2xl p-3.5">
-          <div className="text-[22px] font-extrabold text-td-red">{students.filter(s => s.feeStatus !== 'Paid').length}</div>
+          <div className="text-[22px] font-extrabold text-td-red">{pendingCount}</div>
           <div className="text-[11px] text-[#a35545] font-semibold mt-[3px]">Pending</div>
         </div>
       </div>
+
+      {showForm && (
+        <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[18px] flex flex-col gap-3.5">
+          <div className="text-sm font-extrabold text-td-dark">Add fee record</div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Student</label>
+            <select value={selStudent} onChange={e => setSelStudent(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+              <option value="">Select student</option>
+              {students.map(s => <option key={s.dbId ?? s.id} value={s.dbId ?? ''}>{s.name} — {s.klass}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-[11px]">
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Amount (&#8377;)</label>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 5000" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+            </div>
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Period</label>
+              <input value={period} onChange={e => setPeriod(e.target.value)} placeholder="e.g. July 2026" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+            </div>
+          </div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Due date</label>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+          </div>
+          <PrimaryButton onClick={handleAdd}>Add fee record</PrimaryButton>
+        </div>
+      )}
 
       <button onClick={() => notify('Fee alerts sent to pending students')} className="w-full border border-td-red bg-white text-td-red text-sm font-extrabold p-[13px] rounded-[14px] cursor-pointer mb-[18px]">Send alert to all pending</button>
 
@@ -29,16 +74,17 @@ export function FeesScreen() {
         <div className="text-center text-td-muted text-sm py-8">No students added yet</div>
       ) : (
         <div className="flex flex-col gap-2.5">
-          {rows.map((d, i) => {
+          {rows.map(d => {
+            const realIdx = students.findIndex(s => s.id === d.id)
             const f = feeColor(d.feeStatus)
             return (
               <div key={d.id} className="bg-white border border-td-border rounded-2xl p-[13px] px-3.5 flex items-center gap-[13px]">
-                <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i) }}>{initials(d.name)}</div>
+                <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(realIdx) }}>{initials(d.name)}</div>
                 <div className="flex-1">
                   <div className="text-[13.5px] font-bold text-td-dark">{d.name}</div>
                   <div className="text-xs text-td-muted mt-0.5">{d.klass}</div>
                 </div>
-                <span className="text-[10.5px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: f.c, background: f.b }}>{d.feeStatus}</span>
+                <button onClick={() => toggleFeeStatus(realIdx)} className="text-[10.5px] font-bold py-[5px] px-2.5 rounded-[20px] border-none cursor-pointer" style={{ color: f.c, background: f.b }}>{d.feeStatus}</button>
               </div>
             )
           })}

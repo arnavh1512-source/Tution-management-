@@ -75,6 +75,8 @@ interface Actions {
   saveAssignment: (title: string, subject: string, klass: string, dueDate: string, instructions: string) => void
   saveReminder: (type: string, message: string, targetClass: string) => void
   saveStudentProfile: () => void
+  addFee: (studentDbId: string, amount: number, period: string, dueDate: string) => void
+  toggleFeeStatus: (idx: number) => void
   setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
@@ -263,6 +265,37 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     const arr = [...students]; arr[idx] = updated
     set({ students: arr, stuEdit: { name: '', parentNumber: '', address: '' } })
     get().notify('Profile updated'); get().go('stuProfile', 'stuProfile')
+  },
+
+  addFee: (studentDbId, amount, period, dueDate) => {
+    const { liveMode, students } = get()
+    if (liveMode && studentDbId) {
+      supabase.from('fees').insert({ student_id: studentDbId, amount, period, due_date: dueDate, status: 'Due' }).then(() => {})
+      supabase.from('students').update({ fee_status: 'Due' }).eq('id', studentDbId).then(() => {})
+    }
+    const idx = students.findIndex(s => s.dbId === studentDbId)
+    if (idx >= 0) {
+      const arr = [...students]; arr[idx] = { ...arr[idx], feeStatus: 'Due' }
+      set({ students: arr })
+    }
+    get().notify('Fee record added')
+  },
+
+  toggleFeeStatus: (idx) => {
+    const { students, liveMode } = get()
+    const student = students[idx]
+    if (!student) return
+    const newStatus: FeeStatus = student.feeStatus === 'Paid' ? 'Due' : 'Paid'
+    const arr = [...students]; arr[idx] = { ...arr[idx], feeStatus: newStatus }
+    set({ students: arr })
+    if (liveMode && student.dbId) {
+      supabase.from('students').update({ fee_status: newStatus }).eq('id', student.dbId).then(() => {})
+      if (newStatus === 'Paid') {
+        supabase.from('fees').update({ status: 'Paid', paid_date: new Date().toISOString().split('T')[0] })
+          .eq('student_id', student.dbId).eq('status', 'Due').then(() => {})
+      }
+    }
+    get().notify(`${student.name}: ${newStatus}`)
   },
 
   setAdminPin: (pin) => {
