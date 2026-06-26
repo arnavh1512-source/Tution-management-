@@ -395,7 +395,7 @@ export function StuFeesScreen() {
           <div className="text-xs opacity-70 font-semibold">Amount due</div>
           <div className="text-[28px] font-extrabold mt-1">{stuPendingFee.amount}</div>
           <div className="text-[12.5px] opacity-80 mt-1">{stuPendingFee.period} · Due {stuPendingFee.dueDate}</div>
-          <button onClick={() => notify('Payment gateway — coming soon')} className="w-full mt-4 border-none bg-white text-td-red text-sm font-extrabold py-3.5 rounded-[14px] cursor-pointer">Pay now</button>
+          <button onClick={() => { notify('Contact your teacher to arrange payment'); window.open(`https://wa.me/?text=${encodeURIComponent(`Hi, I'd like to pay my tuition fee of ${stuPendingFee.amount} for ${stuPendingFee.period}.`)}`, '_blank') }} className="w-full mt-4 border-none bg-white text-td-red text-sm font-extrabold py-3.5 rounded-[14px] cursor-pointer">Pay now via WhatsApp</button>
         </div>
       ) : (
         <div className="rounded-[22px] p-5 text-white mb-5 text-center" style={{ background: 'linear-gradient(135deg,#2fa36b,#56c48d)' }}>
