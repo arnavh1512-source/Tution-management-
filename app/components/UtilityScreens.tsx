@@ -181,15 +181,42 @@ export function RankingsScreen() {
 }
 
 export function BranchesScreen() {
-  const { back, branchesList, notify } = useDashboard()
+  const { back, branchesList, addBranch } = useDashboard()
+  const [showForm, setShowForm] = useState(false)
+  const [name, setName] = useState('')
+  const [address, setAddress] = useState('')
+  const [isMain, setIsMain] = useState(false)
+
+  const handleAdd = () => {
+    if (!name.trim()) { useDashboard.getState().notify('Enter branch name'); return }
+    addBranch(name.trim(), address.trim(), isMain)
+    setName(''); setAddress(''); setIsMain(false); setShowForm(false)
+  }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Branches" onBack={back} right={
-        <button onClick={() => notify('Add branch form — coming soon')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
-          <span className="text-base leading-none">+</span> Add
+        <button onClick={() => setShowForm(f => !f)} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+          <span className="text-base leading-none">{showForm ? '×' : '+'}</span> {showForm ? 'Close' : 'Add'}
         </button>
       } />
+
+      {showForm && (
+        <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[18px] flex flex-col gap-3.5">
+          <div className="text-sm font-extrabold text-td-dark">New branch</div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Satellite Centre" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+          </div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Address</label>
+            <input value={address} onChange={e => setAddress(e.target.value)} placeholder="e.g. 123 Main Street" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+          </div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={isMain} onChange={e => setIsMain(e.target.checked)} className="w-5 h-5 accent-[#2a6fdb] rounded" />
+            <span className="text-[13px] font-bold text-td-dark">Set as main branch</span>
+          </label>
+          <PrimaryButton onClick={handleAdd}>Add branch</PrimaryButton>
+        </div>
+      )}
 
       {branchesList.length === 0 ? (
         <div className="text-center text-td-muted text-sm py-8">No branches configured</div>

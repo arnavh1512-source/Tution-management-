@@ -78,6 +78,7 @@ interface Actions {
   addFee: (studentDbId: string, amount: number, period: string, dueDate: string) => void
   toggleFeeStatus: (idx: number) => void
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
+  addBranch: (name: string, address: string, isMain: boolean) => void
   setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
@@ -313,6 +314,19 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       }).then(() => {})
     }
     get().notify(`Period added: ${subject} on ${day}`)
+  },
+
+  addBranch: (name, address, isMain) => {
+    const { branchesList, liveMode } = get()
+    const branch: BranchItem = { name, address, main: isMain, students: 0, staff: 0 }
+    if (liveMode) {
+      supabase.from('branches').insert({ name, address, is_main: isMain }).select().single()
+        .then(({ data }) => {
+          if (data) set((s) => ({ branchesList: s.branchesList.map(b => b.name === name && !b.dbId ? { ...b, dbId: data.id } : b) }))
+        })
+    }
+    set({ branchesList: [branch, ...branchesList] })
+    get().notify('Branch added')
   },
 
   setAdminPin: (pin) => {
