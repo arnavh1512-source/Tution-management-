@@ -4,7 +4,7 @@ import { supabase } from './lib/supabase'
 export type Screen =
   | 'home' | 'timetable' | 'attendance' | 'results' | 'assign' | 'reminder'
   | 'students' | 'editStudent' | 'addStudent' | 'teachers' | 'addTeacher'
-  | 'fees' | 'meetings' | 'rankings' | 'branches' | 'more' | 'subscription'
+  | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'more' | 'subscription'
   | 'adminGate' | 'admin'
   | 'stuHome' | 'stuAttendance' | 'stuResults' | 'stuRanking' | 'stuTeachers'
   | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile'
@@ -79,6 +79,7 @@ interface Actions {
   toggleFeeStatus: (idx: number) => void
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   addBranch: (name: string, address: string, isMain: boolean) => void
+  addSubject: (name: string) => void
   setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
@@ -327,6 +328,20 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     }
     set({ branchesList: [branch, ...branchesList] })
     get().notify('Branch added')
+  },
+
+  addSubject: (name) => {
+    const { subjects: list, liveMode } = get()
+    if (list.some(s => s.name.toLowerCase() === name.toLowerCase())) { get().notify('Subject already exists'); return }
+    const item: SubjectItem = { name, dbId: '' }
+    if (liveMode) {
+      supabase.from('subjects').insert({ name }).select().single()
+        .then(({ data }) => {
+          if (data) set((s) => ({ subjects: s.subjects.map(x => x.name === name && !x.dbId ? { ...x, dbId: data.id } : x) }))
+        })
+    }
+    set({ subjects: [...list, item] })
+    get().notify(`Subject "${name}" added`)
   },
 
   setAdminPin: (pin) => {

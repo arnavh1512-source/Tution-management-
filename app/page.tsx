@@ -38,6 +38,7 @@ const FeesScreen = dyn(() => import('./components/UtilityScreens'), 'FeesScreen'
 const MeetingsScreen = dyn(() => import('./components/UtilityScreens'), 'MeetingsScreen')
 const RankingsScreen = dyn(() => import('./components/UtilityScreens'), 'RankingsScreen')
 const BranchesScreen = dyn(() => import('./components/UtilityScreens'), 'BranchesScreen')
+const SubjectsScreen = dyn(() => import('./components/UtilityScreens'), 'SubjectsScreen')
 const MoreScreen = dyn(() => import('./components/UtilityScreens'), 'MoreScreen')
 const SubscriptionScreen = dyn(() => import('./components/UtilityScreens'), 'SubscriptionScreen')
 
@@ -85,6 +86,7 @@ function ScreenRouter() {
     case 'meetings': return <MeetingsScreen />
     case 'rankings': return <RankingsScreen />
     case 'branches': return <BranchesScreen />
+    case 'subjects': return <SubjectsScreen />
     case 'more': return <MoreScreen />
     case 'subscription': return <SubscriptionScreen />
     case 'adminGate': return <AdminGate />

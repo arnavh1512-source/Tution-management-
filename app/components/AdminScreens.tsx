@@ -64,6 +64,7 @@ export function AdminPanel() {
     { icon: '🏆', label: 'Publish rankings', sub: 'Subject-wise leaderboards', tint: '#fcf3e3', go: () => goFrom('rankings', 'home', 'admin') },
     { icon: '📅', label: 'Meetings', sub: 'Staff & parent meetings', tint: '#eaf1fc', go: () => goFrom('meetings', 'home', 'admin') },
     { icon: '🏢', label: 'Branches', sub: 'Manage all centres', tint: '#eef0fc', go: () => goFrom('branches', 'home', 'admin') },
+    { icon: '📖', label: 'Subjects', sub: 'Add & manage subjects', tint: '#eaf1fc', go: () => goFrom('subjects', 'home', 'admin') },
     { icon: '💎', label: 'Subscription', sub: 'Plans & billing (staff only)', tint: '#fcf3e3', go: () => goFrom('subscription', 'home', 'admin') },
   ]
 

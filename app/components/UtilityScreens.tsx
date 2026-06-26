@@ -241,6 +241,45 @@ export function BranchesScreen() {
   )
 }
 
+export function SubjectsScreen() {
+  const { subjects, back, addSubject } = useDashboard()
+  const [name, setName] = useState('')
+
+  const handleAdd = () => {
+    if (!name.trim()) { useDashboard.getState().notify('Enter subject name'); return }
+    addSubject(name.trim())
+    setName('')
+  }
+
+  return (
+    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
+      <ScreenHeader title="Subjects" onBack={back} />
+
+      <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[18px] flex flex-col gap-3.5">
+        <div className="text-sm font-extrabold text-td-dark">Add subject</div>
+        <div className="flex gap-[11px]">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Mathematics" className="flex-1 border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+          <button onClick={handleAdd} className="border-none bg-td-primary text-white text-sm font-bold py-[13px] px-5 rounded-[14px] cursor-pointer shrink-0">Add</button>
+        </div>
+      </div>
+
+      <div className="text-[15px] font-extrabold text-td-dark mb-3">All subjects ({subjects.length})</div>
+      {subjects.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">No subjects added yet</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {subjects.map((s, i) => (
+            <div key={s.name} className="bg-white border border-td-border rounded-2xl p-[13px] px-[15px] flex items-center gap-[13px]">
+              <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[14px]" style={{ background: av(i) }}>{s.name[0]}</div>
+              <div className="flex-1 text-[14px] font-bold text-td-dark">{s.name}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function MoreScreen() {
   const { go, signOut } = useDashboard()
   const items: { icon: string; label: string; tint: string; screen: Screen }[] = [
@@ -252,6 +291,7 @@ export function MoreScreen() {
     { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings' },
     { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings' },
     { icon: '🏢', label: 'Branches', tint: '#eef0fc', screen: 'branches' },
+    { icon: '📖', label: 'Subjects', tint: '#eaf1fc', screen: 'subjects' },
     { icon: '💎', label: 'Subscription', tint: '#fcf3e3', screen: 'subscription' },
   ]
 
