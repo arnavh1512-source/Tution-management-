@@ -20,7 +20,7 @@ export interface Student { name: string; klass: string; attendance: number; feeS
 interface State {
   screen: Screen; tab: Tab; role: Role; origin: string | null
   attClass: string; att: Record<number, string>; rankSubject: string; ttDay: string
-  toast: string; editIndex: number; adminUnlocked: boolean; pin: string; pinError: boolean
+  toast: string; editIndex: number; adminUnlocked: boolean; pin: string; pinError: boolean; adminPin: string
   googleEmail: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string }
   teachers: Teacher[]; students: Student[]
@@ -41,6 +41,7 @@ interface Actions {
   setNewTeacher: (patch: Partial<State['newTeacher']>) => void
   deleteStudent: () => void
   saveTeacher: () => void
+  setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
   loadStudents: (s: Student[]) => void
@@ -71,7 +72,7 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null
 export const useDashboard = create<State & Actions>((set, get) => ({
   screen: 'home', tab: 'home', role: null, origin: null,
   attClass: 'Class 10-B', att: {}, rankSubject: 'Mathematics', ttDay: 'Mon',
-  toast: '', editIndex: 0, adminUnlocked: false, pin: '', pinError: false,
+  toast: '', editIndex: 0, adminUnlocked: false, pin: '', pinError: false, adminPin: '1234',
   googleEmail: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '' },
   teachers: INITIAL_TEACHERS, students: INITIAL_STUDENTS,
@@ -96,7 +97,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (key === 'clr') { set({ pin: '', pinError: false }); return }
     const current = get().pin + key
     if (current.length < 4) { set({ pin: current, pinError: false }); return }
-    if (current === '1234') { get().notify('Admin unlocked'); set({ pin: '', adminUnlocked: true, screen: 'admin', pinError: false }) }
+    if (current === get().adminPin) { get().notify('Admin unlocked'); set({ pin: '', adminUnlocked: true, screen: 'admin', pinError: false }) }
     else { set({ pin: '', pinError: true }) }
   },
 
@@ -126,9 +127,19 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     get().notify('Student removed'); get().go('students', 'students')
   },
 
+  setAdminPin: (pin) => {
+    set({ adminPin: pin })
+    const { supabaseUserId, liveMode } = get()
+    if (liveMode && supabaseUserId) {
+      supabase.from('profiles').update({ admin_pin: pin }).eq('id', supabaseUserId).then(() => {})
+    }
+  },
+
   saveTeacher: () => {
     const { newTeacher: nt, teachers, liveMode } = get()
     if (!nt.name.trim()) { get().notify('Enter a name first'); return }
+    if (!nt.qualification.trim()) { get().notify('Enter qualification'); return }
+    if (nt.experience && isNaN(Number(nt.experience))) { get().notify('Experience must be a number'); return }
     const t: Teacher = { name: nt.name, subject: nt.subject, qualification: nt.qualification || '—', experience: Number(nt.experience) || 0 }
     if (liveMode) {
       supabase.from('teachers').insert({ name: t.name, subject: t.subject, qualification: t.qualification, experience: t.experience })

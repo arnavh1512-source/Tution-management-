@@ -82,7 +82,11 @@ export function EditStudentScreen() {
           </div>
         </div>
       </div>
-      <PrimaryButton onClick={() => { notify('Student record updated'); go('students', 'students') }}>Save changes</PrimaryButton>
+      <PrimaryButton onClick={() => {
+        if (!st.name.trim()) { notify('Name is required'); return }
+        if (st.parent && !/^\+?\d[\d\s\-]{6,}$/.test(st.parent)) { notify('Invalid phone number'); return }
+        notify('Student record updated'); go('students', 'students')
+      }}>Save changes</PrimaryButton>
     </div>
   )
 }

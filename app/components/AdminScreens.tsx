@@ -1,10 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { useDashboard } from '../store'
 import { ScreenHeader, ChevronRight } from './Shell'
 
 export function AdminGate() {
-  const { pin, pinError, pressPin, back } = useDashboard()
+  const { pin, pinError, pressPin, back, liveMode } = useDashboard()
   const dots = [0,1,2,3].map(i => ({ filled: i < pin.length }))
   const keys = ['1','2','3','4','5','6','7','8','9','clr','0','del']
 
@@ -25,8 +26,9 @@ export function AdminGate() {
         ))}
       </div>
 
-      {pinError && <div className="text-center text-[12.5px] font-bold text-td-red mb-1.5">Wrong PIN — try 1234</div>}
-      <div className="text-[11.5px] text-td-subtle text-center mb-5">Demo PIN: 1234</div>
+      {pinError && <div className="text-center text-[12.5px] font-bold text-td-red mb-1.5">{liveMode ? 'Wrong PIN' : 'Wrong PIN — try 1234'}</div>}
+      {!liveMode && <div className="text-[11.5px] text-td-subtle text-center mb-5">Demo PIN: 1234</div>}
+      {liveMode && <div className="h-5 mb-5" />}
 
       <div className="grid grid-cols-3 gap-3 mt-auto">
         {keys.map(k => (
@@ -40,7 +42,20 @@ export function AdminGate() {
 }
 
 export function AdminPanel() {
-  const { back, notify, goFrom, set } = useDashboard()
+  const { back, notify, goFrom, set, setAdminPin, liveMode } = useDashboard()
+  const [showPinForm, setShowPinForm] = useState(false)
+  const [newPin, setNewPin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+
+  const handleSavePin = () => {
+    if (!/^\d{4}$/.test(newPin)) { notify('PIN must be exactly 4 digits'); return }
+    if (newPin !== confirmPin) { notify('PINs do not match'); return }
+    setAdminPin(newPin)
+    setShowPinForm(false)
+    setNewPin('')
+    setConfirmPin('')
+    notify('Admin PIN updated')
+  }
 
   const items = [
     { icon: '👥', label: 'Manage staff', sub: 'Add, edit & assign teachers', tint: '#eaf1fc', go: () => goFrom('teachers', 'teachers', 'admin') },
@@ -95,6 +110,37 @@ export function AdminPanel() {
             <ChevronRight />
           </button>
         ))}
+      </div>
+
+      <div className="mt-[22px]">
+        <button onClick={() => setShowPinForm(p => !p)} className="w-full text-left bg-white border border-td-border rounded-[18px] p-4 cursor-pointer flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#fcf3e3] shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e0962f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-bold text-td-dark">Change Admin PIN</div>
+            <div className="text-[11.5px] text-td-subtle mt-0.5">Set your own 4-digit PIN</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round"><path d={showPinForm ? 'm6 9 6 6 6-6' : 'm9 18 6-6-6-6'}/></svg>
+        </button>
+
+        {showPinForm && (
+          <div className="bg-white border border-td-border border-t-0 rounded-b-[18px] -mt-[3px] p-4 flex flex-col gap-3">
+            <input type="password" inputMode="numeric" maxLength={4}
+              value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="New 4-digit PIN"
+              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.5em]"
+            />
+            <input type="password" inputMode="numeric" maxLength={4}
+              value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="Confirm PIN"
+              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.5em]"
+            />
+            <button onClick={handleSavePin} className="w-full border-none bg-td-primary text-white text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer">
+              Save new PIN
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -30,11 +30,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   async function handleAuth(userId: string, email: string) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, admin_pin')
       .eq('id', userId)
       .single()
 
     const role = (profile?.role as 'admin' | 'teacher' | 'student') ?? 'student'
+    if (profile?.admin_pin) set({ adminPin: profile.admin_pin as string })
     setAuth(userId, role, email)
     await fetchData()
   }
