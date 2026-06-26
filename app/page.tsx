@@ -2,6 +2,7 @@
 
 import { useDashboard } from './store'
 import { PhoneFrame } from './components/Shell'
+import { SupabaseProvider } from './components/SupabaseProvider'
 import { LoginScreen } from './components/AuthScreens'
 import { HomeScreen } from './components/HomeScreen'
 import { AdminGate, AdminPanel } from './components/AdminScreens'
@@ -12,9 +13,11 @@ import { StuHomeScreen, StuAttendanceScreen, StuResultsScreen, StuRankingScreen,
 
 export default function Page() {
   return (
-    <PhoneFrame>
-      <ScreenRouter />
-    </PhoneFrame>
+    <SupabaseProvider>
+      <PhoneFrame>
+        <ScreenRouter />
+      </PhoneFrame>
+    </SupabaseProvider>
   )
 }
 

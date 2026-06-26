@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { supabase } from './lib/supabase'
 
 export type Screen =
   | 'home' | 'timetable' | 'attendance' | 'results' | 'assign' | 'reminder'
@@ -13,8 +14,8 @@ export type Tab = 'home' | 'timetable' | 'students' | 'teachers' | 'more'
 export type Role = 'admin' | 'teacher' | 'student' | null
 export type FeeStatus = 'Paid' | 'Due' | 'Overdue'
 
-export interface Teacher { name: string; subject: string; experience: number; qualification: string; rating?: string; about?: string }
-export interface Student { name: string; klass: string; attendance: number; feeStatus: FeeStatus; school: string; parent: string; id: string }
+export interface Teacher { name: string; subject: string; experience: number; qualification: string; rating?: string; about?: string; dbId?: string }
+export interface Student { name: string; klass: string; attendance: number; feeStatus: FeeStatus; school: string; parent: string; id: string; dbId?: string }
 
 interface State {
   screen: Screen; tab: Tab; role: Role; origin: string | null
@@ -25,6 +26,7 @@ interface State {
   teachers: Teacher[]; students: Student[]
   stuTeacherIndex: number; stuRankSubject: string
   stuEdit: { name: string; parentNumber: string; address: string }
+  supabaseUserId: string | null; authLoading: boolean; liveMode: boolean
 }
 
 interface Actions {
@@ -40,6 +42,9 @@ interface Actions {
   deleteStudent: () => void
   saveTeacher: () => void
   signOut: () => void
+  loadTeachers: (t: Teacher[]) => void
+  loadStudents: (s: Student[]) => void
+  setAuth: (userId: string | null, role: Role, email?: string) => void
 }
 
 const INITIAL_TEACHERS: Teacher[] = [
@@ -72,6 +77,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   teachers: INITIAL_TEACHERS, students: INITIAL_STUDENTS,
   stuTeacherIndex: 0, stuRankSubject: 'Mathematics',
   stuEdit: { name: 'Aarav Sharma', parentNumber: '+91 98100 45xxx', address: 'B-204, Sector 12, Noida, UP' },
+  supabaseUserId: null, authLoading: true, liveMode: false,
 
   go: (screen, tab) => set({ screen, tab: (tab ?? screen) as Tab, origin: null }),
   goFrom: (screen, tab, origin) => set({ screen, tab, origin }),
@@ -97,25 +103,58 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   toggleAtt: (i) => set((s) => ({ att: { ...s.att, [i]: s.att[i] === 'absent' ? 'present' : 'absent' } })),
 
   setStudentField: (patch) => set((s) => {
-    const arr = [...s.students]; arr[s.editIndex] = { ...arr[s.editIndex], ...patch }; return { students: arr }
+    const arr = [...s.students]; arr[s.editIndex] = { ...arr[s.editIndex], ...patch }
+    const updated = arr[s.editIndex]
+    if (updated.dbId) {
+      supabase.from('students').update({
+        name: updated.name, class: updated.klass, school: updated.school,
+        parent_contact: updated.parent, fee_status: updated.feeStatus,
+      }).eq('id', updated.dbId).then(() => {})
+    }
+    return { students: arr }
   }),
 
   setNewTeacher: (patch) => set((s) => ({ newTeacher: { ...s.newTeacher, ...patch } })),
 
   deleteStudent: () => {
     const { editIndex, students } = get()
+    const student = students[editIndex]
+    if (student?.dbId) {
+      supabase.from('students').delete().eq('id', student.dbId).then(() => {})
+    }
     set({ students: students.filter((_, i) => i !== editIndex), editIndex: 0 })
     get().notify('Student removed'); get().go('students', 'students')
   },
 
   saveTeacher: () => {
-    const { newTeacher: nt, teachers } = get()
+    const { newTeacher: nt, teachers, liveMode } = get()
     if (!nt.name.trim()) { get().notify('Enter a name first'); return }
-    set({ teachers: [{ name: nt.name, subject: nt.subject, qualification: nt.qualification || '—', experience: Number(nt.experience) || 0 }, ...teachers], newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '' } })
+    const t: Teacher = { name: nt.name, subject: nt.subject, qualification: nt.qualification || '—', experience: Number(nt.experience) || 0 }
+    if (liveMode) {
+      supabase.from('teachers').insert({ name: t.name, subject: t.subject, qualification: t.qualification, experience: t.experience })
+        .select().single().then(({ data }) => {
+          if (data) set((s) => ({ teachers: s.teachers.map(x => x.name === t.name && !x.dbId ? { ...x, dbId: data.id } : x) }))
+        })
+    }
+    set({ teachers: [t, ...teachers], newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '' } })
     get().notify('Teacher added to staff'); get().go('teachers', 'teachers')
   },
 
-  signOut: () => { set({ role: null, adminUnlocked: false, googleEmail: '', screen: 'home' as Screen, tab: 'home' as Tab }); get().notify('Signed out') },
+  signOut: () => {
+    supabase.auth.signOut()
+    set({ role: null, adminUnlocked: false, googleEmail: '', screen: 'home' as Screen, tab: 'home' as Tab, supabaseUserId: null, liveMode: false, teachers: INITIAL_TEACHERS, students: INITIAL_STUDENTS })
+    get().notify('Signed out')
+  },
+
+  loadTeachers: (t) => set({ teachers: t }),
+  loadStudents: (s) => set({ students: s }),
+  setAuth: (userId, role, email) => set({
+    supabaseUserId: userId, role, authLoading: false,
+    googleEmail: email ?? '',
+    liveMode: !!userId,
+    screen: role === 'student' ? 'stuHome' : 'home',
+    tab: role === 'student' ? 'stuHome' as Tab : 'home',
+  }),
 }))
 
 // --- Static data ---
