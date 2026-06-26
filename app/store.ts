@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { supabase } from './lib/supabase'
 
+const dbErr = (op: string, notify: (m: string) => void) =>
+  ({ error }: { error: unknown }) => { if (error) notify(`Sync failed: ${op}`) }
+
 export type Screen =
   | 'home' | 'timetable' | 'attendance' | 'results' | 'assign' | 'reminder'
   | 'students' | 'editStudent' | 'addStudent' | 'teachers' | 'addTeacher'
@@ -138,7 +141,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabase.from('students').update({
         name: updated.name, class: updated.klass, school: updated.school,
         parent_contact: updated.parent, fee_status: updated.feeStatus,
-      }).eq('id', updated.dbId).then(() => {})
+      }).eq('id', updated.dbId).then(dbErr('update student', get().notify))
     }
     return { students: arr }
   }),
@@ -150,7 +153,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     const { editIndex, students } = get()
     const student = students[editIndex]
     if (student?.dbId) {
-      supabase.from('students').delete().eq('id', student.dbId).then(() => {})
+      supabase.from('students').delete().eq('id', student.dbId).then(dbErr('delete student', get().notify))
     }
     set({ students: students.filter((_, i) => i !== editIndex), editIndex: 0 })
     get().notify('Student removed'); get().go('students', 'students')
@@ -177,7 +180,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (!ns.name.trim()) { get().notify('Enter student name'); return }
     if (!ns.parent.trim()) { get().notify('Enter parent contact'); return }
     if (ns.parent && !/^\+?\d[\d\s\-]{6,}$/.test(ns.parent)) { get().notify('Invalid phone number'); return }
-    const code = `TUT-${1000 + students.length + Math.floor(Math.random() * 900)}`
+    const code = `TUT-${Date.now().toString(36).slice(-4).toUpperCase()}${crypto.getRandomValues(new Uint16Array(1))[0].toString(36).toUpperCase()}`
     const student: Student = {
       name: ns.name, klass: `Class ${ns.batch}`, attendance: 0,
       feeStatus: 'Due', school: ns.school, parent: ns.parent, id: code,
@@ -205,7 +208,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       return { student_id: student.dbId, date: new Date().toISOString().split('T')[0], status: att[i] === 'absent' ? 'Absent' : 'Present' }
     }).filter(Boolean)
     if (records.length) {
-      supabase.from('attendance').upsert(records as any[], { onConflict: 'student_id,date' }).then(() => {})
+      supabase.from('attendance').upsert(records as any[], { onConflict: 'student_id,date' }).then(dbErr('save attendance', get().notify))
     }
     get().notify(`Attendance saved · ${studentNames.length - Object.values(att).filter(v => v === 'absent').length} present`)
   },
@@ -220,7 +223,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       mon: d.toLocaleString('en', { month: 'short' }),
     }
     if (liveMode) {
-      supabase.from('meetings').insert({ title, meeting_type: type, date: d.toISOString().split('T')[0], time }).then(() => {})
+      supabase.from('meetings').insert({ title, meeting_type: type, date: d.toISOString().split('T')[0], time }).then(dbErr('save meeting', get().notify))
     }
     set({ meetingsList: [item, ...meetingsList] })
     get().notify('Meeting scheduled · invites sent')
@@ -239,7 +242,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabase.from('assignments').insert({
         title, class: klass, due_date: d.toISOString().split('T')[0],
         instructions: instructions || null, subject_id: subjectId ?? null,
-      }).then(() => {})
+      }).then(dbErr('save assignment', get().notify))
     }
     set({ assignmentsList: [item, ...assignmentsList] })
     get().notify('Assignment created · class notified')
@@ -248,7 +251,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   saveReminder: (type, message, targetClass) => {
     const { liveMode } = get()
     if (liveMode) {
-      supabase.from('reminders').insert({ type, message, target_class: targetClass }).then(() => {})
+      supabase.from('reminders').insert({ type, message, target_class: targetClass }).then(dbErr('send reminder', get().notify))
     }
     get().notify(`${type} reminder sent`)
   },
@@ -264,7 +267,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (liveMode && currentStudentDbId) {
       supabase.from('students').update({
         name: updated.name, parent_contact: updated.parent, address: updated.address,
-      }).eq('id', currentStudentDbId).then(() => {})
+      }).eq('id', currentStudentDbId).then(dbErr('update profile', get().notify))
     }
     const arr = [...students]; arr[idx] = updated
     set({ students: arr, stuEdit: { name: '', parentNumber: '', address: '' } })
@@ -274,8 +277,8 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   addFee: (studentDbId, amount, period, dueDate) => {
     const { liveMode, students } = get()
     if (liveMode && studentDbId) {
-      supabase.from('fees').insert({ student_id: studentDbId, amount, period, due_date: dueDate, status: 'Due' }).then(() => {})
-      supabase.from('students').update({ fee_status: 'Due' }).eq('id', studentDbId).then(() => {})
+      supabase.from('fees').insert({ student_id: studentDbId, amount, period, due_date: dueDate, status: 'Due' }).then(dbErr('add fee', get().notify))
+      supabase.from('students').update({ fee_status: 'Due' }).eq('id', studentDbId).then(dbErr('update fee status', get().notify))
     }
     const idx = students.findIndex(s => s.dbId === studentDbId)
     if (idx >= 0) {
@@ -293,10 +296,10 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     const arr = [...students]; arr[idx] = { ...arr[idx], feeStatus: newStatus }
     set({ students: arr })
     if (liveMode && student.dbId) {
-      supabase.from('students').update({ fee_status: newStatus }).eq('id', student.dbId).then(() => {})
+      supabase.from('students').update({ fee_status: newStatus }).eq('id', student.dbId).then(dbErr('toggle fee', get().notify))
       if (newStatus === 'Paid') {
         supabase.from('fees').update({ status: 'Paid', paid_date: new Date().toISOString().split('T')[0] })
-          .eq('student_id', student.dbId).eq('status', 'Due').then(() => {})
+          .eq('student_id', student.dbId).eq('status', 'Due').then(dbErr('mark fees paid', get().notify))
       }
     }
     get().notify(`${student.name}: ${newStatus}`)
@@ -313,7 +316,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabase.from('timetable').insert({
         day, start_time: startTime, end_time: endTime,
         subject_id: subjectId ?? subject, class: klass, room: room || null,
-      }).then(() => {})
+      }).then(dbErr('add timetable', get().notify))
     }
     get().notify(`Period added: ${subject} on ${day}`)
   },
@@ -362,7 +365,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     set({ adminPin: pin })
     const { supabaseUserId, liveMode } = get()
     if (liveMode && supabaseUserId) {
-      supabase.from('profiles').update({ admin_pin: pin }).eq('id', supabaseUserId).then(() => {})
+      supabase.from('profiles').update({ admin_pin: pin }).eq('id', supabaseUserId).then(dbErr('update PIN', get().notify))
     }
   },
 
