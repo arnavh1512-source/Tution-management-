@@ -76,7 +76,7 @@ interface Actions {
   saveAttendance: (studentNames: string[]) => void
   saveMeeting: (title: string, type: string, date: string, time: string) => void
   saveAssignment: (title: string, subject: string, klass: string, dueDate: string, instructions: string) => void
-  saveReminder: (type: string, message: string, targetClass: string) => void
+  saveReminder: (type: string, message: string, targetClass: string, filter?: string) => void
   saveStudentProfile: () => void
   addFee: (studentDbId: string, amount: number, period: string, dueDate: string) => void
   toggleFeeStatus: (idx: number) => void
@@ -248,12 +248,30 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     get().notify('Assignment created · class notified')
   },
 
-  saveReminder: (type, message, targetClass) => {
-    const { liveMode } = get()
+  saveReminder: (type, message, targetClass, filter) => {
+    const { liveMode, students } = get()
+    const icons: Record<string, string> = { Test: '📝', Absence: '🟡', Fee: '💳', Homework: '📚' }
+    const icon = icons[type] ?? '🔔'
+
+    let targets = students.filter(s => s.dbId)
+    if (filter === 'absentees') targets = targets.filter(s => s.attendance === 0)
+    else if (filter === 'fees_due') targets = targets.filter(s => s.feeStatus !== 'Paid')
+    else if (targetClass && targetClass !== 'all') targets = targets.filter(s => s.klass === targetClass)
+
     if (liveMode) {
       supabase.from('reminders').insert({ type, message, target_class: targetClass }).then(dbErr('send reminder', get().notify))
+      if (targets.length) {
+        const rows = targets.map(s => ({ student_id: s.dbId, title: `${type} Reminder`, detail: message, icon }))
+        supabase.from('notifications').insert(rows).then(dbErr('send notifications', get().notify))
+      }
     }
-    get().notify(`${type} reminder sent`)
+
+    const now = new Date().toISOString()
+    const newNotifs = targets.map(s => ({
+      icon, tint: '#eaf1fc', title: `${type} Reminder`, detail: message, when: 'Just now', dbId: now,
+    }))
+    set((s) => ({ stuNotifications: [...newNotifs, ...s.stuNotifications] }))
+    get().notify(`${type} reminder sent to ${targets.length} students`)
   },
 
   saveStudentProfile: () => {

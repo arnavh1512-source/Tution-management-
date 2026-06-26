@@ -317,6 +317,7 @@ export function AssignmentsScreen() {
 export function RemindersScreen() {
   const { reminderType, back, set, saveReminder } = useDashboard()
   const [message, setMessage] = useState(REMINDER_TEMPLATES[reminderType] ?? '')
+  const [filter, setFilter] = useState('all')
   const types = [
     { key: 'Test', label: 'Test', icon: '📝' },
     { key: 'Absence', label: 'Absence', icon: '🟡' },
@@ -342,14 +343,16 @@ export function RemindersScreen() {
       </div>
 
       <label className="text-xs font-bold text-td-muted mb-[7px] block">Send to</label>
-      <select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none mb-4">
-        <option>All classes</option><option>Absentees only</option><option>Students with fees due</option>
+      <select value={filter} onChange={e => setFilter(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none mb-4">
+        <option value="all">All students</option>
+        <option value="absentees">Absentees only</option>
+        <option value="fees_due">Students with fees due</option>
       </select>
 
       <label className="text-xs font-bold text-td-muted mb-[7px] block">Message</label>
       <textarea rows={4} value={message} onChange={e => setMessage(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none resize-none mb-[18px] focus:border-td-primary" />
 
-      <PrimaryButton onClick={() => saveReminder(reminderType, message, 'all')}>Send to parents &amp; students</PrimaryButton>
+      <PrimaryButton onClick={() => saveReminder(reminderType, message, 'all', filter)}>Send to students</PrimaryButton>
     </div>
   )
 }
