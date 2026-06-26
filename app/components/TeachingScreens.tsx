@@ -5,10 +5,23 @@ import { useDashboard, REMINDER_TEMPLATES, initials, av } from '../store'
 import { ScreenHeader, PrimaryButton } from './Shell'
 
 export function TimetableScreen() {
-  const { ttDay, timetableData, back, set, notify } = useDashboard()
+  const { ttDay, timetableData, back, set, notify, addTimetableEntry, subjects } = useDashboard()
+  const [showForm, setShowForm] = useState(false)
+  const [startTime, setStartTime] = useState('09:00')
+  const [endTime, setEndTime] = useState('10:00')
+  const [subject, setSubject] = useState('')
+  const [klass, setKlass] = useState('Class 10-B')
+  const [room, setRoom] = useState('')
   const days = [{ s: 'Mon', d: '23' },{ s: 'Tue', d: '24' },{ s: 'Wed', d: '25' },{ s: 'Thu', d: '26' },{ s: 'Fri', d: '27' },{ s: 'Sat', d: '28' }]
   const dayNames: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday' }
   const periods = timetableData[ttDay] || []
+  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']
+
+  const handleAdd = () => {
+    if (!subject && !subjectNames[0]) { notify('Select a subject'); return }
+    addTimetableEntry(ttDay, startTime, endTime, subject || subjectNames[0], klass, room)
+    setStartTime('09:00'); setEndTime('10:00'); setSubject(''); setRoom(''); setShowForm(false)
+  }
 
   const periodStyle = (p: string[]) => {
     const free = p[2] === 'Free period'
@@ -27,7 +40,9 @@ export function TimetableScreen() {
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Timetable" onBack={back} right={
-        <button onClick={() => notify('Timetable editing — coming soon')} className="border-none bg-[#eaf1fc] text-td-primary text-[12.5px] font-bold py-[9px] px-3.5 rounded-[13px] cursor-pointer">Edit</button>
+        <button onClick={() => setShowForm(f => !f)} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+          <span className="text-base leading-none">{showForm ? '×' : '+'}</span> {showForm ? 'Close' : 'Add'}
+        </button>
       } />
 
       <div className="flex gap-2 overflow-x-auto mb-[18px] scrollbar-hide">
@@ -41,6 +56,35 @@ export function TimetableScreen() {
           )
         })}
       </div>
+
+      {showForm && (
+        <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[18px] flex flex-col gap-3.5">
+          <div className="text-sm font-extrabold text-td-dark">Add period — {dayNames[ttDay]}</div>
+          <div className="grid grid-cols-2 gap-[11px]">
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Start</label>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+            </div>
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">End</label>
+              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+            </div>
+          </div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Subject</label>
+            <select value={subject || subjectNames[0]} onChange={e => setSubject(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+              {subjectNames.map(s => <option key={s}>{s}</option>)}
+              <option>Free period</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-[11px]">
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label>
+              <input value={klass} onChange={e => setKlass(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+            </div>
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Room</label>
+              <input value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 1" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+            </div>
+          </div>
+          <PrimaryButton onClick={handleAdd}>Add period</PrimaryButton>
+        </div>
+      )}
 
       <div className="text-[13px] text-td-muted font-semibold mb-3.5">{dayNames[ttDay]} · {periods.length} periods</div>
 

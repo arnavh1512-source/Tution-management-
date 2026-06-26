@@ -77,6 +77,7 @@ interface Actions {
   saveStudentProfile: () => void
   addFee: (studentDbId: string, amount: number, period: string, dueDate: string) => void
   toggleFeeStatus: (idx: number) => void
+  addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   setAdminPin: (pin: string) => void
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
@@ -296,6 +297,22 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       }
     }
     get().notify(`${student.name}: ${newStatus}`)
+  },
+
+  addTimetableEntry: (day, startTime, endTime, subject, klass, room) => {
+    const { timetableData, liveMode, subjects: subjectsList } = get()
+    const updated = { ...timetableData }
+    if (!updated[day]) updated[day] = []
+    updated[day] = [...updated[day], [startTime, endTime, subject, klass, room]].sort((a, b) => a[0].localeCompare(b[0]))
+    set({ timetableData: updated })
+    if (liveMode) {
+      const subjectId = subjectsList.find(s => s.name === subject)?.dbId
+      supabase.from('timetable').insert({
+        day, start_time: startTime, end_time: endTime,
+        subject_id: subjectId ?? subject, class: klass, room: room || null,
+      }).then(() => {})
+    }
+    get().notify(`Period added: ${subject} on ${day}`)
   },
 
   setAdminPin: (pin) => {
