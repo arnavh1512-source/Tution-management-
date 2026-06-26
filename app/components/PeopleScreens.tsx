@@ -60,13 +60,24 @@ export function EditStudentScreen() {
         <button onClick={deleteStudent} className="border-none bg-[#fdecea] text-td-red text-[12.5px] font-bold py-[9px] px-[13px] rounded-[13px] cursor-pointer">Remove</button>
       } />
 
-      <div className="flex items-center gap-3.5 mb-[22px]">
+      <div className="flex items-center gap-3.5 mb-3">
         <div className="w-16 h-16 rounded-[18px] shrink-0 flex items-center justify-center text-white font-extrabold text-[22px]" style={{ background: av(editIndex) }}>{initials(st.name)}</div>
         <div>
           <div className="text-[17px] font-extrabold text-td-dark">{st.name}</div>
-          <div className="text-[12.5px] text-td-muted mt-0.5">{st.klass} · ID {st.id}</div>
+          <div className="text-[12.5px] text-td-muted mt-0.5">{st.klass}</div>
         </div>
       </div>
+
+      <button onClick={() => { navigator.clipboard.writeText(st.id); notify('Code copied!') }} className="w-full border border-dashed border-td-primary bg-[#eaf1fc] rounded-[14px] p-3 mb-[22px] cursor-pointer flex items-center justify-between">
+        <div>
+          <div className="text-[11px] font-bold text-td-muted">STUDENT LINK CODE</div>
+          <div className="text-[18px] font-extrabold text-td-primary tracking-wider">{st.id}</div>
+        </div>
+        <div className="text-[11px] font-bold text-td-primary flex items-center gap-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </div>
+      </button>
 
       <div className="flex flex-col gap-3.5 mb-[18px]">
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={st.name} onChange={e => setStudentField({ name: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
