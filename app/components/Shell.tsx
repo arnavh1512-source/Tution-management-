@@ -32,10 +32,11 @@ function StatusBar() {
 }
 
 function BottomTabBar() {
-  const { role, tab, go } = useDashboard()
+  const { role, tab, go, currentStudentDbId } = useDashboard()
   if (!role) return null
 
   if (role === 'student') {
+    if (!currentStudentDbId) return null
     const color = (t: Tab) => tab === t ? '#2a6fdb' : '#9aa4b6'
     const stuTabs: { key: Tab; label: string; screen: Screen; icon: (c: string) => React.ReactNode }[] = [
       { key: 'stuHome', label: 'Home', screen: 'stuHome', icon: (c) => <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg> },
