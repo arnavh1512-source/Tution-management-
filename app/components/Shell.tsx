@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useCallback } from 'react'
 import { useDashboard, type Screen, type Tab } from '../store'
 
 export function PhoneFrame({ children }: { children: React.ReactNode }) {
@@ -107,8 +108,15 @@ export function ScreenHeader({ title, onBack, right }: { title: string; onBack: 
 }
 
 export function PrimaryButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  const busy = useRef(false)
+  const guard = useCallback(() => {
+    if (busy.current) return
+    busy.current = true
+    onClick()
+    setTimeout(() => { busy.current = false }, 800)
+  }, [onClick])
   return (
-    <button onClick={onClick} className="w-full border-none bg-td-primary text-white text-[15px] font-extrabold py-[15px] rounded-2xl cursor-pointer">
+    <button onClick={guard} className="w-full border-none bg-td-primary text-white text-[15px] font-extrabold py-[15px] rounded-2xl cursor-pointer">
       {children}
     </button>
   )
