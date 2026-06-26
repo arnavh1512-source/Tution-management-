@@ -1,13 +1,13 @@
 'use client'
 
-import { useDashboard, SCHEDULE, type Screen } from '../store'
+import { useDashboard, initials, type Screen } from '../store'
 
 export function HomeScreen() {
-  const { role, go, set } = useDashboard()
+  const { role, go, set, schedule, students, teachers, branchesList, googleEmail } = useDashboard()
   const isAdmin = role === 'admin'
-  const teacher = isAdmin
-    ? { name: 'Priya Menon', branch: 'Noida Central Branch', initials: 'PM', role: 'Head Teacher' }
-    : { name: 'Rahul Verma', branch: 'Noida Central Branch', initials: 'RV', role: 'Teacher' }
+  const mainBranch = branchesList.find(b => b.main) ?? branchesList[0]
+  const displayName = googleEmail?.split('@')[0] ?? (isAdmin ? 'Admin' : 'Teacher')
+  const ini = initials(displayName)
 
   const quickActions: { icon: string; label: string; tint: string; screen: Screen; tab?: string }[] = [
     { icon: '✅', label: 'Attendance', tint: '#e7f5ee', screen: 'attendance' },
@@ -30,10 +30,10 @@ export function HomeScreen() {
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-white font-extrabold text-[17px]" style={{ background: 'linear-gradient(135deg,#2a6fdb,#5a93ef)' }}>{teacher.initials}</div>
+          <div className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-white font-extrabold text-[17px]" style={{ background: 'linear-gradient(135deg,#2a6fdb,#5a93ef)' }}>{ini}</div>
           <div>
-            <div className="text-xs text-td-muted font-semibold">{teacher.role}</div>
-            <div className="text-[17px] font-extrabold text-td-dark">{teacher.name}</div>
+            <div className="text-xs text-td-muted font-semibold">{isAdmin ? 'Head Teacher' : 'Teacher'}</div>
+            <div className="text-[17px] font-extrabold text-td-dark">{displayName}</div>
           </div>
         </div>
         <div className="w-[42px] h-[42px] rounded-[14px] border border-td-border bg-white flex items-center justify-center relative">
@@ -44,17 +44,17 @@ export function HomeScreen() {
 
       <button onClick={() => go('branches')} className="inline-flex items-center gap-[7px] bg-white border border-td-border rounded-[20px] py-[7px] px-[13px] mb-[18px] cursor-pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-        <span className="text-[12.5px] font-semibold text-td-text">{teacher.branch}</span>
+        <span className="text-[12.5px] font-semibold text-td-text">{mainBranch?.name ?? 'No branch'}</span>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.4" strokeLinecap="round"><path d="m6 9 6 6 6-6"/></svg>
       </button>
 
       <div className="grid grid-cols-2 gap-2.5 mb-3.5">
         <div className="rounded-[18px] p-3.5 text-white" style={{ background: 'linear-gradient(135deg,#2a6fdb,#3f82ec)' }}>
-          <div className="text-2xl font-extrabold leading-none">3</div>
+          <div className="text-2xl font-extrabold leading-none">{schedule.length}</div>
           <div className="text-[11px] opacity-85 mt-1.5 font-semibold">Classes today</div>
         </div>
         <div className="bg-white border border-td-border rounded-[18px] p-3.5">
-          <div className="text-2xl font-extrabold leading-none text-td-dark">112</div>
+          <div className="text-2xl font-extrabold leading-none text-td-dark">{students.length}</div>
           <div className="text-[11px] text-td-muted mt-1.5 font-semibold">Students</div>
         </div>
       </div>
@@ -83,22 +83,26 @@ export function HomeScreen() {
       </div>
 
       <div className="text-base font-extrabold text-td-dark mb-[13px]">Today&apos;s schedule</div>
-      <div className="flex flex-col gap-2.5 mb-[26px]">
-        {SCHEDULE.map(c => (
-          <div key={c.time} className="flex items-center gap-[13px] bg-white border border-td-border rounded-[18px] py-3.5 px-[15px]">
-            <div className="text-center shrink-0 w-[52px]">
-              <div className="text-sm font-extrabold text-td-primary">{c.time}</div>
-              <div className="text-[10px] text-td-subtle font-semibold">{c.ampm}</div>
+      {schedule.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">No classes scheduled for today</div>
+      ) : (
+        <div className="flex flex-col gap-2.5 mb-[26px]">
+          {schedule.map((c, i) => (
+            <div key={i} className="flex items-center gap-[13px] bg-white border border-td-border rounded-[18px] py-3.5 px-[15px]">
+              <div className="text-center shrink-0 w-[52px]">
+                <div className="text-sm font-extrabold text-td-primary">{c.time}</div>
+                <div className="text-[10px] text-td-subtle font-semibold">{c.ampm}</div>
+              </div>
+              <div className="w-px h-[34px] bg-[#eef1f7]" />
+              <div className="flex-1">
+                <div className="text-[13.5px] font-bold text-td-dark">{c.subject}</div>
+                <div className="text-xs text-td-muted mt-0.5">{c.klass} · {c.room}</div>
+              </div>
+              <span className="text-[11px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: c.statusColor, background: c.statusBg }}>{c.status}</span>
             </div>
-            <div className="w-px h-[34px] bg-[#eef1f7]" />
-            <div className="flex-1">
-              <div className="text-[13.5px] font-bold text-td-dark">{c.subject}</div>
-              <div className="text-xs text-td-muted mt-0.5">{c.klass} · {c.room}</div>
-            </div>
-            <span className="text-[11px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: c.statusColor, background: c.statusBg }}>{c.status}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

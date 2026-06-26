@@ -1,6 +1,7 @@
 'use client'
 
-import { useDashboard, MEETINGS, BRANCHES, RANK_DATA, PLAN_META, PLAN_PERKS, initials, av, feeColor, type Screen } from '../store'
+import { useState } from 'react'
+import { useDashboard, PLAN_META, PLAN_PERKS, initials, av, feeColor, type Screen } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function FeesScreen() {
@@ -12,33 +13,47 @@ export function FeesScreen() {
       <ScreenHeader title="Fees" onBack={back} />
 
       <div className="flex gap-2.5 mb-[18px]">
-        <div className="flex-1 bg-[#e7f5ee] rounded-2xl p-3.5"><div className="text-[22px] font-extrabold text-td-green">₹1.2L</div><div className="text-[11px] text-[#5a8a72] font-semibold mt-[3px]">Collected</div></div>
-        <div className="flex-1 bg-[#fdecea] rounded-2xl p-3.5"><div className="text-[22px] font-extrabold text-td-red">₹27K</div><div className="text-[11px] text-[#a35545] font-semibold mt-[3px]">Pending</div></div>
+        <div className="flex-1 bg-[#e7f5ee] rounded-2xl p-3.5">
+          <div className="text-[22px] font-extrabold text-td-green">{students.filter(s => s.feeStatus === 'Paid').length}</div>
+          <div className="text-[11px] text-[#5a8a72] font-semibold mt-[3px]">Paid</div>
+        </div>
+        <div className="flex-1 bg-[#fdecea] rounded-2xl p-3.5">
+          <div className="text-[22px] font-extrabold text-td-red">{students.filter(s => s.feeStatus !== 'Paid').length}</div>
+          <div className="text-[11px] text-[#a35545] font-semibold mt-[3px]">Pending</div>
+        </div>
       </div>
 
       <button onClick={() => notify('Fee alerts sent to pending students')} className="w-full border border-td-red bg-white text-td-red text-sm font-extrabold p-[13px] rounded-[14px] cursor-pointer mb-[18px]">Send alert to all pending</button>
 
-      <div className="flex flex-col gap-2.5">
-        {rows.map((d, i) => {
-          const f = feeColor(d.feeStatus)
-          return (
-            <div key={d.id} className="bg-white border border-td-border rounded-2xl p-[13px] px-3.5 flex items-center gap-[13px]">
-              <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i) }}>{initials(d.name)}</div>
-              <div className="flex-1">
-                <div className="text-[13.5px] font-bold text-td-dark">{d.name}</div>
-                <div className="text-xs text-td-muted mt-0.5">₹4,500 · July 2026</div>
+      {rows.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">No students added yet</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {rows.map((d, i) => {
+            const f = feeColor(d.feeStatus)
+            return (
+              <div key={d.id} className="bg-white border border-td-border rounded-2xl p-[13px] px-3.5 flex items-center gap-[13px]">
+                <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i) }}>{initials(d.name)}</div>
+                <div className="flex-1">
+                  <div className="text-[13.5px] font-bold text-td-dark">{d.name}</div>
+                  <div className="text-xs text-td-muted mt-0.5">{d.klass}</div>
+                </div>
+                <span className="text-[10.5px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: f.c, background: f.b }}>{d.feeStatus}</span>
               </div>
-              <span className="text-[10.5px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: f.c, background: f.b }}>{d.feeStatus}</span>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
 export function MeetingsScreen() {
-  const { back, notify } = useDashboard()
+  const { back, meetingsList, saveMeeting } = useDashboard()
+  const [title, setTitle] = useState('')
+  const [type, setType] = useState('Parent-teacher meeting')
+  const [date, setDate] = useState('')
+  const [time, setTime] = useState('11:00 AM')
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -46,45 +61,53 @@ export function MeetingsScreen() {
 
       <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[22px] flex flex-col gap-3.5">
         <div className="text-sm font-extrabold text-td-dark">Schedule new</div>
-        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Title</label><input placeholder="e.g. Parent-teacher meeting" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Type</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>Parent-teacher meeting</option><option>Staff meeting</option></select></div>
-        <div className="grid grid-cols-2 gap-[11px]">
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Date</label><input defaultValue="28 Jun 2026" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Time</label><input defaultValue="11:00 AM" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Title</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Parent-teacher meeting" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Type</label>
+          <select value={type} onChange={e => setType(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+            <option>Parent-teacher meeting</option><option>Staff meeting</option>
+          </select>
         </div>
-        <PrimaryButton onClick={() => notify('Meeting scheduled · invites sent')}>Schedule &amp; invite</PrimaryButton>
+        <div className="grid grid-cols-2 gap-[11px]">
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Time</label><input value={time} onChange={e => setTime(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        </div>
+        <PrimaryButton onClick={() => { saveMeeting(title, type, date, time); setTitle(''); setDate('') }}>Schedule &amp; invite</PrimaryButton>
       </div>
 
       <div className="text-[15px] font-extrabold text-td-dark mb-3">Upcoming</div>
-      <div className="flex flex-col gap-2.5">
-        {MEETINGS.map(m => (
-          <div key={m.title} className="bg-white border border-td-border rounded-2xl p-3.5 flex items-center gap-[13px]">
-            <div className="w-[46px] text-center shrink-0 bg-[#eaf1fc] rounded-xl py-2">
-              <div className="text-base font-extrabold text-td-primary leading-none">{m.day}</div>
-              <div className="text-[10px] text-td-primary font-semibold mt-0.5">{m.mon}</div>
+      {meetingsList.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-4">No meetings scheduled</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {meetingsList.map(m => (
+            <div key={m.title + m.day} className="bg-white border border-td-border rounded-2xl p-3.5 flex items-center gap-[13px]">
+              <div className="w-[46px] text-center shrink-0 bg-[#eaf1fc] rounded-xl py-2">
+                <div className="text-base font-extrabold text-td-primary leading-none">{m.day}</div>
+                <div className="text-[10px] text-td-primary font-semibold mt-0.5">{m.mon}</div>
+              </div>
+              <div className="flex-1">
+                <div className="text-[13.5px] font-bold text-td-dark">{m.title}</div>
+                <div className="text-xs text-td-muted mt-0.5">{m.time} · {m.kind}</div>
+              </div>
             </div>
-            <div className="flex-1">
-              <div className="text-[13.5px] font-bold text-td-dark">{m.title}</div>
-              <div className="text-xs text-td-muted mt-0.5">{m.time} · {m.kind}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 export function RankingsScreen() {
-  const { rankSubject, back, set, notify } = useDashboard()
-  const subjects = ['Mathematics', 'Physics', 'Chemistry', 'English']
-  const rows = (RANK_DATA[rankSubject] || []).map((r, i) => ({ rank: i + 1, name: r[0], score: r[1] }))
+  const { rankSubject, rankData, subjects, back, set, notify } = useDashboard()
+  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English']
+  const rows = (rankData[rankSubject] || []).map((r, i) => ({ rank: i + 1, name: r[0], score: r[1] }))
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Rankings" onBack={back} />
 
       <div className="flex gap-[9px] overflow-x-auto mb-[18px] scrollbar-hide">
-        {subjects.map(name => {
+        {subjectNames.map(name => {
           const active = name === rankSubject
           return (
             <button key={name} onClick={() => set({ rankSubject: name })} className="shrink-0 text-[13px] font-bold py-[9px] px-4 rounded-[20px] cursor-pointer border" style={{ background: active ? '#2a6fdb' : '#fff', color: active ? '#fff' : '#3a4456', borderColor: active ? '#2a6fdb' : '#e6eaf2' }}>{name}</button>
@@ -92,23 +115,27 @@ export function RankingsScreen() {
         })}
       </div>
 
-      <div className="flex flex-col gap-[9px] mb-5">
-        {rows.map((r, i) => (
-          <div key={r.name} className="flex items-center gap-[13px] bg-white border border-td-border rounded-2xl p-3 px-3.5">
-            <div className="w-[26px] text-center text-sm font-extrabold" style={{ color: i < 3 ? '#e0962f' : '#9aa4b6' }}>{r.rank}</div>
-            <div className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i) }}>{initials(r.name)}</div>
-            <div className="flex-1 text-[13.5px] font-bold text-td-dark">{r.name}</div>
-            <div className="text-sm font-extrabold text-td-dark">{r.score}%</div>
-          </div>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">No results data for {rankSubject}</div>
+      ) : (
+        <div className="flex flex-col gap-[9px] mb-5">
+          {rows.map((r, i) => (
+            <div key={r.name} className="flex items-center gap-[13px] bg-white border border-td-border rounded-2xl p-3 px-3.5">
+              <div className="w-[26px] text-center text-sm font-extrabold" style={{ color: i < 3 ? '#e0962f' : '#9aa4b6' }}>{r.rank}</div>
+              <div className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i) }}>{initials(r.name)}</div>
+              <div className="flex-1 text-[13.5px] font-bold text-td-dark">{r.name}</div>
+              <div className="text-sm font-extrabold text-td-dark">{r.score}%</div>
+            </div>
+          ))}
+        </div>
+      )}
       <PrimaryButton onClick={() => notify(`${rankSubject} rankings published`)}>Publish rankings</PrimaryButton>
     </div>
   )
 }
 
 export function BranchesScreen() {
-  const { back, notify } = useDashboard()
+  const { back, branchesList, notify } = useDashboard()
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -118,21 +145,25 @@ export function BranchesScreen() {
         </button>
       } />
 
-      <div className="flex flex-col gap-3">
-        {BRANCHES.map(b => (
-          <div key={b.name} className="bg-white border border-td-border rounded-[18px] p-4">
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="text-[15px] font-extrabold text-td-dark">{b.name}</div>
-              {b.main && <span className="text-[10px] font-bold text-td-primary bg-[#eaf1fc] py-1 px-[9px] rounded-[20px]">Main</span>}
+      {branchesList.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">No branches configured</div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {branchesList.map(b => (
+            <div key={b.name} className="bg-white border border-td-border rounded-[18px] p-4">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="text-[15px] font-extrabold text-td-dark">{b.name}</div>
+                {b.main && <span className="text-[10px] font-bold text-td-primary bg-[#eaf1fc] py-1 px-[9px] rounded-[20px]">Main</span>}
+              </div>
+              <div className="text-[12.5px] text-td-muted mb-3">{b.address}</div>
+              <div className="flex gap-[18px]">
+                <div><div className="text-base font-extrabold text-td-dark">{b.students}</div><div className="text-[11px] text-td-subtle font-semibold">Students</div></div>
+                <div><div className="text-base font-extrabold text-td-dark">{b.staff}</div><div className="text-[11px] text-td-subtle font-semibold">Staff</div></div>
+              </div>
             </div>
-            <div className="text-[12.5px] text-td-muted mb-3">{b.address}</div>
-            <div className="flex gap-[18px]">
-              <div><div className="text-base font-extrabold text-td-dark">{b.students}</div><div className="text-[11px] text-td-subtle font-semibold">Students</div></div>
-              <div><div className="text-base font-extrabold text-td-dark">{b.staff}</div><div className="text-[11px] text-td-subtle font-semibold">Staff</div></div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

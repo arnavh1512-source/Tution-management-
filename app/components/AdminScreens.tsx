@@ -42,7 +42,7 @@ export function AdminGate() {
 }
 
 export function AdminPanel() {
-  const { back, notify, goFrom, set, setAdminPin, liveMode } = useDashboard()
+  const { back, notify, goFrom, set, setAdminPin, liveMode, students, teachers, googleEmail } = useDashboard()
   const [showPinForm, setShowPinForm] = useState(false)
   const [newPin, setNewPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
@@ -86,11 +86,16 @@ export function AdminPanel() {
 
       <div className="inline-flex items-center gap-[7px] bg-[#e7f5ee] rounded-[20px] py-[7px] px-[13px] mt-1.5 mb-5">
         <span className="w-2 h-2 rounded-full bg-td-green" />
-        <span className="text-xs font-bold text-td-green">Unlocked as Priya Menon</span>
+        <span className="text-xs font-bold text-td-green">Unlocked as {googleEmail?.split('@')[0] ?? 'Admin'}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-[11px] mb-[22px]">
-        {[{ v: '239', l: 'Total students' }, { v: '20', l: 'Staff members' }, { v: '₹1.2L', l: 'Collected', c: '#2fa36b' }, { v: '₹27K', l: 'Pending', c: '#e8553c' }].map(s => (
+        {[
+          { v: String(students.length), l: 'Total students' },
+          { v: String(teachers.length), l: 'Staff members' },
+          { v: String(students.filter(s => s.feeStatus === 'Paid').length), l: 'Fees clear', c: '#2fa36b' },
+          { v: String(students.filter(s => s.feeStatus !== 'Paid').length), l: 'Fees pending', c: '#e8553c' },
+        ].map(s => (
           <div key={s.l} className="bg-white border border-td-border rounded-[18px] p-4">
             <div className="text-2xl font-extrabold" style={{ color: s.c || '#1a2332' }}>{s.v}</div>
             <div className="text-[11px] text-td-muted font-semibold mt-[5px]">{s.l}</div>

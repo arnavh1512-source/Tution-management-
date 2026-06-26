@@ -4,7 +4,8 @@ import { useDashboard, initials, av, feeColor, GRADIENTS } from '../store'
 import { ScreenHeader, PrimaryButton, BackButton, ChevronRight } from './Shell'
 
 export function StudentsScreen() {
-  const { students, origin, back, go, set } = useDashboard()
+  const { students, origin, back, go, set, searchQuery } = useDashboard()
+  const filtered = searchQuery ? students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())) : students
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -20,25 +21,30 @@ export function StudentsScreen() {
 
       <div className="flex items-center gap-2.5 bg-white border border-td-border rounded-[14px] p-[11px] px-3.5 mb-[18px]">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
-        <span className="text-[13.5px] text-td-subtle">Search students...</span>
+        <input value={searchQuery} onChange={e => set({ searchQuery: e.target.value })} placeholder="Search students..." className="flex-1 text-[13.5px] text-td-dark outline-none bg-transparent" />
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        {students.map((s, i) => {
-          const f = feeColor(s.feeStatus)
-          return (
-            <button key={s.id} onClick={() => set({ editIndex: i, screen: 'editStudent', tab: 'students' })} className="text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] cursor-pointer">
-              <div className="w-[46px] h-[46px] rounded-[14px] shrink-0 flex items-center justify-center text-white font-bold text-[15px]" style={{ background: av(i) }}>{initials(s.name)}</div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-extrabold text-td-dark">{s.name}</div>
-                <div className="text-xs text-td-muted mt-0.5">{s.klass} · {s.attendance}% attendance</div>
-              </div>
-              <span className="text-[10.5px] font-bold py-[5px] px-[9px] rounded-[20px]" style={{ color: f.c, background: f.b }}>{s.feeStatus}</span>
-              <ChevronRight />
-            </button>
-          )
-        })}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">{students.length === 0 ? 'No students added yet' : 'No results'}</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {filtered.map((s, i) => {
+            const idx = students.indexOf(s)
+            const f = feeColor(s.feeStatus)
+            return (
+              <button key={s.id || i} onClick={() => set({ editIndex: idx, screen: 'editStudent', tab: 'students' })} className="text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] cursor-pointer">
+                <div className="w-[46px] h-[46px] rounded-[14px] shrink-0 flex items-center justify-center text-white font-bold text-[15px]" style={{ background: av(idx) }}>{initials(s.name)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-extrabold text-td-dark">{s.name}</div>
+                  <div className="text-xs text-td-muted mt-0.5">{s.klass} · {s.attendance}% attendance</div>
+                </div>
+                <span className="text-[10.5px] font-bold py-[5px] px-[9px] rounded-[20px]" style={{ color: f.c, background: f.b }}>{s.feeStatus}</span>
+                <ChevronRight />
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -46,6 +52,7 @@ export function StudentsScreen() {
 export function EditStudentScreen() {
   const { students, editIndex, go, setStudentField, deleteStudent, notify } = useDashboard()
   const st = students[editIndex] || students[0]
+  if (!st) return <div className="p-5 text-center text-td-muted">No student selected</div>
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -92,7 +99,7 @@ export function EditStudentScreen() {
 }
 
 export function AddStudentScreen() {
-  const { go, notify } = useDashboard()
+  const { go, newStudent, setNewStudent, addStudent, branchesList } = useDashboard()
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -106,19 +113,31 @@ export function AddStudentScreen() {
       </div>
 
       <div className="flex flex-col gap-3.5 mb-[22px]">
-        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input placeholder="Student name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={newStudent.name} onChange={e => setNewStudent({ name: e.target.value })} placeholder="Student name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div className="grid grid-cols-2 gap-[11px]">
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">School</label><input placeholder="School" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Standard</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>Class 10</option><option>Class 9</option></select></div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">School</label><input value={newStudent.school} onChange={e => setNewStudent({ school: e.target.value })} placeholder="School" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Standard</label>
+            <select value={newStudent.klass} onChange={e => setNewStudent({ klass: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+              <option>Class 10</option><option>Class 9</option><option>Class 8</option>
+            </select>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-[11px]">
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Batch / Class</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>10-B</option><option>10-A</option></select></div>
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>Noida Central</option><option>Sector 18</option></select></div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Batch</label>
+            <select value={newStudent.batch} onChange={e => setNewStudent({ batch: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+              <option>10-B</option><option>10-A</option><option>9-A</option><option>9-B</option>
+            </select>
+          </div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch</label>
+            <select value={newStudent.branch} onChange={e => setNewStudent({ branch: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+              {branchesList.length ? branchesList.map(b => <option key={b.name}>{b.name}</option>) : <option>No branches</option>}
+            </select>
+          </div>
         </div>
-        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Parent contact</label><input placeholder="+91" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Address</label><input placeholder="Address" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Parent contact</label><input value={newStudent.parent} onChange={e => setNewStudent({ parent: e.target.value })} placeholder="+91" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Address</label><input value={newStudent.address} onChange={e => setNewStudent({ address: e.target.value })} placeholder="Address" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
       </div>
-      <PrimaryButton onClick={() => { notify('Student added'); go('students', 'students') }}>Save student</PrimaryButton>
+      <PrimaryButton onClick={addStudent}>Save student</PrimaryButton>
     </div>
   )
 }
@@ -138,24 +157,29 @@ export function StaffScreen() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {teachers.map((t, i) => (
-          <div key={t.name + i} className="bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-3.5">
-            <div className="w-[52px] h-[52px] rounded-2xl shrink-0 flex items-center justify-center text-white font-extrabold text-[17px]" style={{ background: GRADIENTS[i % GRADIENTS.length] }}>{initials(t.name)}</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[15px] font-extrabold text-td-dark">{t.name}</div>
-              <div className="text-[12.5px] text-td-primary font-bold mt-0.5">{t.subject}</div>
-              <div className="text-[11.5px] text-td-muted mt-[3px]">{t.experience} yrs · {t.qualification}</div>
+      {teachers.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-8">No teachers added yet</div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {teachers.map((t, i) => (
+            <div key={t.name + i} className="bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-3.5">
+              <div className="w-[52px] h-[52px] rounded-2xl shrink-0 flex items-center justify-center text-white font-extrabold text-[17px]" style={{ background: GRADIENTS[i % GRADIENTS.length] }}>{initials(t.name)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-extrabold text-td-dark">{t.name}</div>
+                <div className="text-[12.5px] text-td-primary font-bold mt-0.5">{t.subject}</div>
+                <div className="text-[11.5px] text-td-muted mt-[3px]">{t.experience} yrs · {t.qualification}</div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 export function AddTeacherScreen() {
-  const { newTeacher: nt, go, setNewTeacher, saveTeacher } = useDashboard()
+  const { newTeacher: nt, subjects, go, setNewTeacher, saveTeacher } = useDashboard()
+  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -169,13 +193,16 @@ export function AddTeacherScreen() {
       </div>
 
       <div className="flex flex-col gap-3.5 mb-[22px]">
-        <button onClick={() => setNewTeacher({ name: 'Priya Menon', subject: 'Mathematics', qualification: 'M.Sc, B.Ed', experience: '12' })} className="w-full border border-dashed border-td-primary bg-[#eaf1fc] text-td-primary text-[13px] font-bold p-3 rounded-[14px] cursor-pointer">Add myself as a teacher</button>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={nt.name} onChange={e => setNewTeacher({ name: e.target.value })} placeholder="Teacher name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Subject</label><select value={nt.subject} onChange={e => setNewTeacher({ subject: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>Mathematics</option><option>Physics</option><option>Chemistry</option><option>English</option><option>Biology</option></select></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Subject</label>
+          <select value={nt.subject} onChange={e => setNewTeacher({ subject: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+            {subjectNames.map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Qualification</label><input value={nt.qualification} onChange={e => setNewTeacher({ qualification: e.target.value })} placeholder="e.g. M.Sc, B.Ed" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div className="grid grid-cols-2 gap-[11px]">
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Years of exp.</label><input value={nt.experience} onChange={e => setNewTeacher({ experience: e.target.value })} placeholder="0" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>Noida Central</option><option>Sector 18</option></select></div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>All branches</option></select></div>
         </div>
       </div>
       <PrimaryButton onClick={saveTeacher}>Save teacher</PrimaryButton>
