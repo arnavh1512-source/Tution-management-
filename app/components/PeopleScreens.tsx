@@ -4,7 +4,7 @@ import { useDashboard, initials, av, feeColor, GRADIENTS } from '../store'
 import { ScreenHeader, PrimaryButton, BackButton, ChevronRight } from './Shell'
 
 export function StudentsScreen() {
-  const { students, origin, back, go, set, searchQuery } = useDashboard()
+  const { students, origin, back, go, goFrom, set, searchQuery } = useDashboard()
   const filtered = searchQuery ? students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())) : students
 
   return (
@@ -14,7 +14,7 @@ export function StudentsScreen() {
           {origin === 'admin' && <BackButton onClick={back} />}
           <div className="text-2xl font-extrabold text-td-dark">Students</div>
         </div>
-        <button onClick={() => go('addStudent', 'students')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+        <button onClick={() => origin === 'admin' ? goFrom('addStudent', 'students', 'admin') : go('addStudent', 'students')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
           <span className="text-base leading-none">+</span> Add
         </button>
       </div>
@@ -32,7 +32,7 @@ export function StudentsScreen() {
             const idx = students.indexOf(s)
             const f = feeColor(s.feeStatus)
             return (
-              <button key={s.id || i} onClick={() => set({ editIndex: idx, screen: 'editStudent', tab: 'students' })} className="text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] cursor-pointer">
+              <button key={s.id || i} onClick={() => set({ editIndex: idx, screen: 'editStudent', tab: 'students', ...(origin === 'admin' ? { origin: 'admin' } : {}) })} className="text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] cursor-pointer">
                 <div className="w-[46px] h-[46px] rounded-[14px] shrink-0 flex items-center justify-center text-white font-bold text-[15px]" style={{ background: av(idx) }}>{initials(s.name)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-extrabold text-td-dark">{s.name}</div>
@@ -50,13 +50,13 @@ export function StudentsScreen() {
 }
 
 export function EditStudentScreen() {
-  const { students, editIndex, go, setStudentField, deleteStudent, notify } = useDashboard()
+  const { students, editIndex, origin, go, goFrom, setStudentField, deleteStudent, notify } = useDashboard()
   const st = students[editIndex] || students[0]
   if (!st) return <div className="p-5 text-center text-td-muted">No student selected</div>
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <ScreenHeader title="Edit Student" onBack={() => go('students', 'students')} right={
+      <ScreenHeader title="Edit Student" onBack={() => origin === 'admin' ? goFrom('students', 'students', 'admin') : go('students', 'students')} right={
         <button onClick={deleteStudent} className="border-none bg-[#fdecea] text-td-red text-[12.5px] font-bold py-[9px] px-[13px] rounded-[13px] cursor-pointer">Remove</button>
       } />
 
@@ -103,14 +103,15 @@ export function EditStudentScreen() {
       <PrimaryButton onClick={() => {
         if (!st.name.trim()) { notify('Name is required'); return }
         if (st.parent && !/^\+?\d[\d\s\-]{6,}$/.test(st.parent)) { notify('Invalid phone number'); return }
-        notify('Student record updated'); go('students', 'students')
+        notify('Student record updated'); origin === 'admin' ? goFrom('students', 'students', 'admin') : go('students', 'students')
       }}>Save changes</PrimaryButton>
     </div>
   )
 }
 
 export function AddStudentScreen() {
-  const { go, newStudent, setNewStudent, addStudent, branchesList, lastAddedCode, set, notify } = useDashboard()
+  const { go, goFrom, origin, newStudent, setNewStudent, addStudent, branchesList, lastAddedCode, set, notify } = useDashboard()
+  const backToList = () => origin === 'admin' ? goFrom('students', 'students', 'admin') : go('students', 'students')
 
   if (lastAddedCode) {
     return (
@@ -128,14 +129,14 @@ export function AddStudentScreen() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy code
         </button>
-        <button onClick={() => { set({ lastAddedCode: '' }); go('students', 'students') }} className="w-full max-w-[280px] border-none bg-td-primary text-white text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer">Done</button>
+        <button onClick={() => { set({ lastAddedCode: '' }); backToList() }} className="w-full max-w-[280px] border-none bg-td-primary text-white text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer">Done</button>
       </div>
     )
   }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <ScreenHeader title="Add Student" onBack={() => go('students', 'students')} />
+      <ScreenHeader title="Add Student" onBack={backToList} />
 
       <div className="flex justify-center mb-5">
         <div className="w-[88px] h-[88px] rounded-full border-2 border-dashed border-[#c2cad8] bg-white flex flex-col items-center justify-center gap-[3px]">
@@ -175,7 +176,7 @@ export function AddStudentScreen() {
 }
 
 export function StaffScreen() {
-  const { teachers, origin, back, go, set, searchQuery } = useDashboard()
+  const { teachers, origin, back, go, goFrom, set, searchQuery } = useDashboard()
   const filtered = searchQuery ? teachers.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.subject.toLowerCase().includes(searchQuery.toLowerCase())) : teachers
 
   return (
@@ -185,7 +186,7 @@ export function StaffScreen() {
           {origin === 'admin' && <BackButton onClick={back} />}
           <div className="text-2xl font-extrabold text-td-dark">Staff</div>
         </div>
-        <button onClick={() => go('addTeacher', 'teachers')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+        <button onClick={() => origin === 'admin' ? goFrom('addTeacher', 'teachers', 'admin') : go('addTeacher', 'teachers')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
           <span className="text-base leading-none">+</span> Add
         </button>
       </div>
@@ -216,12 +217,13 @@ export function StaffScreen() {
 }
 
 export function AddTeacherScreen() {
-  const { newTeacher: nt, subjects, go, setNewTeacher, saveTeacher } = useDashboard()
+  const { newTeacher: nt, subjects, origin, go, goFrom, setNewTeacher, saveTeacher } = useDashboard()
   const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']
+  const backToList = () => origin === 'admin' ? goFrom('teachers', 'teachers', 'admin') : go('teachers', 'teachers')
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <ScreenHeader title="Add Teacher" onBack={() => go('teachers', 'teachers')} />
+      <ScreenHeader title="Add Teacher" onBack={backToList} />
 
       <div className="flex justify-center mb-5">
         <div className="w-[88px] h-[88px] rounded-3xl border-2 border-dashed border-[#c2cad8] bg-white flex flex-col items-center justify-center gap-[3px]">
