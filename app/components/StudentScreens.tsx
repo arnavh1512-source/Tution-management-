@@ -12,7 +12,7 @@ export function StuHomeScreen() {
   if (!currentStudentDbId) {
     return (
       <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6 flex flex-col items-center justify-center min-h-[450px]">
-        <button onClick={() => go('home', 'home')} className="self-start border-none bg-transparent cursor-pointer flex items-center gap-1.5 text-td-muted text-[13px] font-bold mb-6">
+        <button onClick={() => { useDashboard.getState().signOut() }} className="self-start border-none bg-transparent cursor-pointer flex items-center gap-1.5 text-td-muted text-[13px] font-bold mb-6">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7689" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           Back
         </button>
