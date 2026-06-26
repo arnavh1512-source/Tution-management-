@@ -86,6 +86,7 @@ interface Actions {
   addSubject: (name: string) => void
   linkStudentProfile: (code: string) => void
   setAdminPin: (pin: string) => void
+  tryUnlockAdmin: (code: string) => boolean
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
   loadStudents: (s: Student[]) => void
@@ -385,6 +386,16 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (liveMode && supabaseUserId) {
       supabase.from('profiles').update({ admin_pin: pin }).eq('id', supabaseUserId).then(dbErr('update PIN', get().notify))
     }
+  },
+
+  tryUnlockAdmin: (code) => {
+    if (code === get().adminPin) {
+      get().notify('Admin unlocked')
+      set({ pin: '', adminUnlocked: true, screen: 'admin', pinError: false })
+      return true
+    }
+    set({ pinError: true })
+    return false
   },
 
   signOut: () => {

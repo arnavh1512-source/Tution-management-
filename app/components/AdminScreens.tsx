@@ -5,9 +5,10 @@ import { useDashboard } from '../store'
 import { ScreenHeader, ChevronRight } from './Shell'
 
 export function AdminGate() {
-  const { pin, pinError, pressPin, back, liveMode } = useDashboard()
-  const dots = [0,1,2,3].map(i => ({ filled: i < pin.length }))
-  const keys = ['1','2','3','4','5','6','7','8','9','clr','0','del']
+  const { pinError, back, liveMode, tryUnlockAdmin } = useDashboard()
+  const [code, setCode] = useState('')
+
+  const handleUnlock = () => { tryUnlockAdmin(code) }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6 min-h-[560px] flex flex-col">
@@ -16,27 +17,25 @@ export function AdminGate() {
         <div className="w-[72px] h-[72px] rounded-[22px] bg-td-dark flex items-center justify-center mx-auto mb-[18px]">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         </div>
-        <div className="text-[17px] font-extrabold text-td-dark">Enter staff PIN</div>
-        <div className="text-[13px] text-td-muted mt-1.5 leading-relaxed">This area is for teachers &amp; admins only.<br/>Students cannot access it.</div>
+        <div className="text-[17px] font-extrabold text-td-dark">Enter access code</div>
+        <div className="text-[13px] text-td-muted mt-1.5 leading-relaxed">This area is for teachers &amp; admins only.<br/>Enter the code set by the head teacher.</div>
       </div>
 
-      <div className="flex justify-center gap-3 mt-[26px] mb-2">
-        {dots.map((d, i) => (
-          <div key={i} className="w-4 h-4 rounded-full border-2" style={{ background: d.filled ? '#1a2332' : 'transparent', borderColor: d.filled ? '#1a2332' : '#c2cad8' }} />
-        ))}
-      </div>
+      <input
+        type="password" value={code}
+        onChange={e => setCode(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+        placeholder="Enter code"
+        className="w-full max-w-[260px] mx-auto border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.3em] font-bold mt-6 mb-3"
+      />
 
-      {pinError && <div className="text-center text-[12.5px] font-bold text-td-red mb-1.5">{liveMode ? 'Wrong PIN' : 'Wrong PIN — try 1234'}</div>}
-      {!liveMode && <div className="text-[11.5px] text-td-subtle text-center mb-5">Demo PIN: 1234</div>}
+      {pinError && <div className="text-center text-[12.5px] font-bold text-td-red mb-1.5">{liveMode ? 'Wrong code' : 'Wrong code — try 1234'}</div>}
+      {!liveMode && <div className="text-[11.5px] text-td-subtle text-center mb-5">Demo code: 1234</div>}
       {liveMode && <div className="h-5 mb-5" />}
 
-      <div className="grid grid-cols-3 gap-3 mt-auto">
-        {keys.map(k => (
-          <button key={k} onClick={() => pressPin(k)} className="border border-td-border rounded-2xl py-4 text-[21px] font-bold cursor-pointer" style={{ background: k === 'clr' || k === 'del' ? '#f4f6fb' : '#fff', color: k === 'clr' || k === 'del' ? '#9aa4b6' : '#1a2332' }}>
-            {k === 'del' ? '⌫' : k === 'clr' ? 'C' : k}
-          </button>
-        ))}
-      </div>
+      <button onClick={handleUnlock} className="w-full max-w-[260px] mx-auto border-none bg-td-primary text-white text-[15px] font-extrabold py-[15px] rounded-2xl cursor-pointer">
+        Unlock
+      </button>
     </div>
   )
 }
@@ -48,13 +47,13 @@ export function AdminPanel() {
   const [confirmPin, setConfirmPin] = useState('')
 
   const handleSavePin = () => {
-    if (!/^\d{4}$/.test(newPin)) { notify('PIN must be exactly 4 digits'); return }
-    if (newPin !== confirmPin) { notify('PINs do not match'); return }
+    if (newPin.length < 4) { notify('Code must be at least 4 characters'); return }
+    if (newPin !== confirmPin) { notify('Codes do not match'); return }
     setAdminPin(newPin)
     setShowPinForm(false)
     setNewPin('')
     setConfirmPin('')
-    notify('Admin PIN updated')
+    notify('Access code updated')
   }
 
   const items = [
@@ -124,26 +123,26 @@ export function AdminPanel() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e0962f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
           </div>
           <div className="flex-1">
-            <div className="text-sm font-bold text-td-dark">Change Admin PIN</div>
-            <div className="text-[11.5px] text-td-subtle mt-0.5">Set your own 4-digit PIN</div>
+            <div className="text-sm font-bold text-td-dark">Change Access Code</div>
+            <div className="text-[11.5px] text-td-subtle mt-0.5">Set your own admin access code</div>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round"><path d={showPinForm ? 'm6 9 6 6 6-6' : 'm9 18 6-6-6-6'}/></svg>
         </button>
 
         {showPinForm && (
           <div className="bg-white border border-td-border border-t-0 rounded-b-[18px] -mt-[3px] p-4 flex flex-col gap-3">
-            <input type="password" inputMode="numeric" maxLength={4}
-              value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="New 4-digit PIN"
-              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.5em]"
+            <input type="password" maxLength={20}
+              value={newPin} onChange={e => setNewPin(e.target.value)}
+              placeholder="New access code (min 4 chars)"
+              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.3em]"
             />
-            <input type="password" inputMode="numeric" maxLength={4}
-              value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="Confirm PIN"
-              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.5em]"
+            <input type="password" maxLength={20}
+              value={confirmPin} onChange={e => setConfirmPin(e.target.value)}
+              placeholder="Confirm code"
+              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.3em]"
             />
             <button onClick={handleSavePin} className="w-full border-none bg-td-primary text-white text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer">
-              Save new PIN
+              Save access code
             </button>
           </div>
         )}
