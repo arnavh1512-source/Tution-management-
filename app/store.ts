@@ -36,7 +36,7 @@ interface State {
   toast: string; editIndex: number; adminUnlocked: boolean; pin: string; pinError: boolean; adminPin: string
   googleEmail: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string }
-  newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string }
+  newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string; customCode: string }
   stuTeacherIndex: number; stuRankSubject: string
   stuEdit: { name: string; parentNumber: string; address: string }
   supabaseUserId: string | null; authLoading: boolean; liveMode: boolean
@@ -101,7 +101,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   toast: '', editIndex: 0, adminUnlocked: false, pin: '', pinError: false, adminPin: '1234',
   googleEmail: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '' },
-  newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' },
+  newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', customCode: '' },
   teachers: [], students: [],
   stuTeacherIndex: 0, stuRankSubject: 'Mathematics',
   stuEdit: { name: '', parentNumber: '', address: '' },
@@ -182,7 +182,9 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (!ns.name.trim()) { get().notify('Enter student name'); return }
     if (!ns.parent.trim()) { get().notify('Enter parent contact'); return }
     if (ns.parent && !/^\+?\d[\d\s\-]{6,}$/.test(ns.parent)) { get().notify('Invalid phone number'); return }
-    const code = `TUT-${Date.now().toString(36).slice(-4).toUpperCase()}${crypto.getRandomValues(new Uint16Array(1))[0].toString(36).toUpperCase()}`
+    const custom = ns.customCode.trim()
+    if (custom && students.some(s => s.id === custom)) { get().notify('That code is already in use'); return }
+    const code = custom || `TUT-${Date.now().toString(36).slice(-4).toUpperCase()}${crypto.getRandomValues(new Uint16Array(1))[0].toString(36).toUpperCase()}`
     const student: Student = {
       name: ns.name, klass: `Class ${ns.batch}`, attendance: 0,
       feeStatus: 'Due', school: ns.school, parent: ns.parent, id: code,
@@ -197,7 +199,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
         if (data) set((s) => ({ students: s.students.map(x => x.id === code && !x.dbId ? { ...x, dbId: data.id } : x) }))
       })
     }
-    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' }, lastAddedCode: code })
+    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', customCode: '' }, lastAddedCode: code })
   },
 
   saveAttendance: (studentNames) => {

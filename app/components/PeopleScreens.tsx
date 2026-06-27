@@ -169,6 +169,10 @@ export function AddStudentScreen() {
         </div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Parent contact</label><input value={newStudent.parent} onChange={e => setNewStudent({ parent: e.target.value })} placeholder="+91" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Address</label><input value={newStudent.address} onChange={e => setNewStudent({ address: e.target.value })} placeholder="Address" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div>
+          <label className="text-xs font-bold text-td-muted mb-[7px] block">Custom link code <span className="text-td-subtle font-semibold">(optional)</span></label>
+          <input value={newStudent.customCode} onChange={e => setNewStudent({ customCode: e.target.value.toUpperCase().replace(/\s/g, '-') })} placeholder="e.g. 10A-001 (auto-generated if empty)" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary tracking-wide" />
+        </div>
       </div>
       <PrimaryButton onClick={addStudent}>Save student</PrimaryButton>
     </div>
