@@ -12,7 +12,15 @@ export function TimetableScreen() {
   const [subject, setSubject] = useState('')
   const [klass, setKlass] = useState('Class 10-B')
   const [room, setRoom] = useState('')
-  const days = [{ s: 'Mon', d: '23' },{ s: 'Tue', d: '24' },{ s: 'Wed', d: '25' },{ s: 'Thu', d: '26' },{ s: 'Fri', d: '27' },{ s: 'Sat', d: '28' }]
+  const days = (() => {
+    const today = new Date()
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7)) // back to this week's Monday
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((s, i) => {
+      const d = new Date(monday); d.setDate(monday.getDate() + i)
+      return { s, d: String(d.getDate()) }
+    })
+  })()
   const dayNames: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday' }
   const periods = timetableData[ttDay] || []
   const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']

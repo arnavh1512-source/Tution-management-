@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useDashboard, type Role, type StaffStatus, type Teacher, type Student, type FeeStatus, type MeetingItem, type AssignmentItem, type BranchItem, type StuResultItem, type AttLogItem, type NotifItem, type FeeHistoryItem, type ScheduleItem } from '../store'
 
@@ -19,6 +19,30 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
+  }, [])
+
+  // Refresh-on-focus: re-pull fresh data whenever the user returns to the app
+  // (tab/app regains focus). Throttled so quick tab-switches don't spam queries.
+  const lastRefresh = useRef(0)
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - lastRefresh.current < 8000) return
+      lastRefresh.current = Date.now()
+      const st = useDashboard.getState()
+      if (st.supabaseUserId && (st.role === 'admin' || st.role === 'teacher') && st.staffStatus === 'approved') {
+        fetchAllData()
+      } else if (!st.supabaseUserId && st.currentStudentDbId) {
+        const code = localStorage.getItem('student_code')
+        if (code) st.loadStudentByCode(code)
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
   }, [])
 
   // No Google session: a returning student may have a saved code; otherwise land on login.

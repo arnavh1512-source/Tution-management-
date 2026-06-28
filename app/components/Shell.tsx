@@ -5,11 +5,12 @@ import { useDashboard, type Screen, type Tab } from '../store'
 
 export function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#dfe4ee] p-4 md:p-10">
-      <div className="w-full max-w-[402px] bg-[#0b0d12] rounded-[56px] p-[13px] shadow-[0_40px_90px_-20px_rgba(20,30,60,.45)]">
-        <div className="relative w-full aspect-[376/812] bg-td-bg rounded-[44px] overflow-hidden flex flex-col">
+    // Mobile: fills the screen (no bezel). md+: framed phone mockup.
+    <div className="min-h-[100dvh] w-full flex md:items-center md:justify-center md:bg-[#dfe4ee] md:p-10">
+      <div className="w-full flex md:max-w-[402px] md:bg-[#0b0d12] md:rounded-[56px] md:p-[13px] md:shadow-[0_40px_90px_-20px_rgba(20,30,60,.45)]">
+        <div className="relative w-full min-h-[100dvh] md:min-h-0 md:aspect-[376/812] bg-td-bg md:rounded-[44px] overflow-hidden flex flex-col">
           <StatusBar />
-          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">{children}</div>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pt-[env(safe-area-inset-top)] md:pt-0">{children}</div>
           <BottomTabBar />
           <Toast />
         </div>
@@ -20,7 +21,8 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
 
 function StatusBar() {
   return (
-    <div className="h-12 shrink-0 flex items-end justify-between px-7 pb-1.5 text-sm font-bold text-td-dark z-5">
+    // Fake status bar is only for the desktop mockup; real phones have their own.
+    <div className="hidden md:flex h-12 shrink-0 items-end justify-between px-7 pb-1.5 text-sm font-bold text-td-dark z-5">
       <span>9:41</span>
       <div className="absolute left-1/2 top-2 -translate-x-1/2 w-[118px] h-[30px] bg-[#0b0d12] rounded-[18px]" />
       <div className="flex items-center gap-1.5">
@@ -46,7 +48,7 @@ function BottomTabBar() {
       { key: 'stuProfile', label: 'Profile', screen: 'stuProfile', icon: (c) => <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg> },
     ]
     return (
-      <div className="shrink-0 flex justify-around items-center pt-3 pb-[26px] px-2.5 bg-white border-t border-[#eef1f7]">
+      <div className="shrink-0 flex justify-around items-center pt-3 px-2.5 bg-white border-t border-[#eef1f7] pb-[max(env(safe-area-inset-bottom),16px)] md:pb-[26px]">
         {stuTabs.map(t => (
           <button key={t.key} onClick={() => go(t.screen, t.key)} className="border-none bg-transparent cursor-pointer flex flex-col items-center gap-[5px] px-2.5 py-1">
             {t.icon(color(t.key))}

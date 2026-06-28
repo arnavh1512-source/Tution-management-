@@ -40,7 +40,7 @@ interface State {
   staffStatus: StaffStatus; headExists: boolean; staffList: StaffMember[]
   googleEmail: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string; branch: string }
-  newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string; customCode: string }
+  newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string }
   stuTeacherIndex: number; stuRankSubject: string
   stuEdit: { name: string; parentNumber: string; address: string }
   supabaseUserId: string | null; authLoading: boolean
@@ -108,12 +108,12 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 export const useDashboard = create<State & Actions>((set, get) => ({
   screen: 'home', tab: 'home', role: null, origin: null,
-  attClass: '', att: {}, rankSubject: 'Mathematics', ttDay: 'Mon',
+  attClass: '', att: {}, rankSubject: 'Mathematics', ttDay: ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
   toast: '', editIndex: 0,
   staffStatus: 'none', headExists: false, staffList: [],
   googleEmail: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '', branch: '' },
-  newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', customCode: '' },
+  newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' },
   teachers: [], students: [],
   stuTeacherIndex: 0, stuRankSubject: 'Mathematics',
   stuEdit: { name: '', parentNumber: '', address: '' },
@@ -185,9 +185,8 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (!ns.name.trim()) { get().notify('Enter student name'); return }
     if (!ns.parent.trim()) { get().notify('Enter parent contact'); return }
     if (ns.parent && !/^\+?\d[\d\s\-]{6,}$/.test(ns.parent)) { get().notify('Invalid phone number'); return }
-    const custom = ns.customCode.trim()
-    if (custom && students.some(s => s.id === custom)) { get().notify('That code is already in use'); return }
-    const code = custom || `TUT-${Date.now().toString(36).slice(-4).toUpperCase()}${crypto.getRandomValues(new Uint16Array(1))[0].toString(36).toUpperCase()}`
+    let code = genStudentCode()
+    while (students.some(s => s.id === code)) code = genStudentCode()
     const student: Student = {
       name: ns.name, klass: `Class ${ns.batch}`, attendance: 0,
       feeStatus: 'Due', school: ns.school, parent: ns.parent, id: code,
@@ -201,7 +200,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       if (error) { get().notify('Could not save student — check connection'); return }
       if (data) set((s) => ({ students: s.students.map(x => x.id === code && !x.dbId ? { ...x, dbId: data.id } : x) }))
     })
-    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', customCode: '' }, lastAddedCode: code })
+    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' }, lastAddedCode: code })
   },
 
   saveAttendance: (studentNames) => {
@@ -453,6 +452,16 @@ export const useDashboard = create<State & Actions>((set, get) => ({
 }))
 
 // --- Helpers ---
+// Strong, human-readable student codes. Alphabet excludes confusable
+// characters (0/O, 1/I/L) so codes are easy to read aloud and hard to guess.
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+function genStudentCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(8))
+  let s = ''
+  for (const b of bytes) s += CODE_ALPHABET[b % CODE_ALPHABET.length]
+  return `TUT-${s}`
+}
+
 export const initials = (name: string) => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 export const COLORS = ['#2a6fdb','#7c5cdb','#2fa36b','#e0962f','#d94f8a','#3aa0c4','#c4683a','#5a93ef']
 export const GRADIENTS = ['linear-gradient(135deg,#2a6fdb,#5a93ef)','linear-gradient(135deg,#7c5cdb,#a487ef)','linear-gradient(135deg,#2fa36b,#56c48d)','linear-gradient(135deg,#e0962f,#efb45a)','linear-gradient(135deg,#d94f8a,#ec7cae)','linear-gradient(135deg,#3aa0c4,#62bcd8)']

@@ -165,9 +165,9 @@ export function AddStudentScreen() {
         </div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Parent contact</label><input value={newStudent.parent} onChange={e => setNewStudent({ parent: e.target.value })} placeholder="+91" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Address</label><input value={newStudent.address} onChange={e => setNewStudent({ address: e.target.value })} placeholder="Address" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-        <div>
-          <label className="text-xs font-bold text-td-muted mb-[7px] block">Custom link code <span className="text-td-subtle font-semibold">(optional)</span></label>
-          <input value={newStudent.customCode} onChange={e => setNewStudent({ customCode: e.target.value.toUpperCase().replace(/\s/g, '-') })} placeholder="e.g. 10A-001 (auto-generated if empty)" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary tracking-wide" />
+        <div className="flex items-center gap-2.5 bg-[#eaf1fc] border border-[#dbe6fa] rounded-[14px] p-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span className="text-[12px] text-td-primary font-semibold">A secure login code is generated automatically and shown after you save.</span>
         </div>
       </div>
       <PrimaryButton onClick={addStudent}>Save student</PrimaryButton>
