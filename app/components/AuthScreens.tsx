@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDashboard } from '../store'
 import { supabase } from '../lib/supabase'
 
@@ -141,6 +141,23 @@ export function RegisterScreen() {
 
 export function PendingScreen() {
   const { googleEmail, signOut } = useDashboard()
+
+  // Auto-advance the moment the head teacher approves — no manual refresh.
+  // Falls back gracefully to the "Check again" button if Realtime is off.
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      channel = supabase
+        .channel('approval-watch')
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+          () => window.location.reload())
+        .subscribe()
+    })
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [])
+
   return (
     <div className="animate-[pop_.35s_ease] px-6 pt-10 pb-6 min-h-[700px] flex flex-col items-center justify-center text-center">
       <div className="w-[72px] h-[72px] rounded-[22px] bg-[#fcf3e3] flex items-center justify-center mb-5">

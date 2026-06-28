@@ -66,9 +66,10 @@ export default function Page() {
 }
 
 function ScreenRouter() {
-  const { screen, role } = useDashboard()
+  const { screen, role, dataLoading } = useDashboard()
 
   if (!role) return <LoginScreen />
+  if (dataLoading && (role === 'admin' || role === 'teacher')) return <ScreenLoading />
 
   switch (screen) {
     case 'home': return <HomeScreen />

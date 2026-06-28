@@ -43,7 +43,7 @@ interface State {
   newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string }
   stuTeacherIndex: number; stuRankSubject: string
   stuEdit: { name: string; parentNumber: string; address: string }
-  supabaseUserId: string | null; authLoading: boolean
+  supabaseUserId: string | null; authLoading: boolean; dataLoading: boolean
 
   teachers: Teacher[]; students: Student[]
   branchesList: BranchItem[]
@@ -117,7 +117,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   teachers: [], students: [],
   stuTeacherIndex: 0, stuRankSubject: 'Mathematics',
   stuEdit: { name: '', parentNumber: '', address: '' },
-  supabaseUserId: null, authLoading: true,
+  supabaseUserId: null, authLoading: true, dataLoading: false,
 
   branchesList: [], meetingsList: [], assignmentsList: [],
   timetableData: {}, schedule: [], rankData: {}, subjects: [],
@@ -455,7 +455,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
 // Strong, human-readable student codes. Alphabet excludes confusable
 // characters (0/O, 1/I/L) so codes are easy to read aloud and hard to guess.
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-function genStudentCode(): string {
+export function genStudentCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(8))
   let s = ''
   for (const b of bytes) s += CODE_ALPHABET[b % CODE_ALPHABET.length]
@@ -503,7 +503,7 @@ function timeAgo(dateStr: string): string {
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 const rupee = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
 
-function mapSnapshot(snap: any): Partial<State> {
+export function mapSnapshot(snap: any): Partial<State> {
   const s = snap.student ?? {}
   const attendance: any[] = snap.attendance ?? []
   const present = attendance.filter(a => a.status === 'Present').length

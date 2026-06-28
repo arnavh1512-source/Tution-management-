@@ -711,3 +711,16 @@ end; $$;
 
 revoke all on function public.update_student_self(text, text, text, text) from public;
 grant execute on function public.update_student_self(text, text, text, text) to anon, authenticated;
+
+-- ---- Realtime: let a pending teacher auto-advance when approved ------------
+-- Adds profiles to the realtime publication (idempotent). RLS still applies,
+-- so a teacher only receives changes to their own row.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'profiles'
+  ) then
+    alter publication supabase_realtime add table public.profiles;
+  end if;
+end $$;
