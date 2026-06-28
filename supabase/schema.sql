@@ -11,7 +11,9 @@ create extension if not exists "uuid-ossp";
 -- ============================================
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  role text not null check (role in ('admin', 'teacher', 'student')),
+  role text not null check (role in ('admin', 'teacher', 'student')) default 'student',
+  staff_status text not null check (staff_status in ('none', 'pending', 'approved', 'rejected')) default 'none',
+  head_requested boolean not null default false,
   full_name text not null,
   email text,
   phone text,
@@ -353,16 +355,22 @@ create policy "Admins manage subscriptions" on public.subscriptions for all to a
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name, email, role)
+  -- New Google sign-ins start UNREGISTERED (role 'student', staff_status 'none').
+  -- They then register in-app as Head Teacher (only if none exists yet) or
+  -- Teacher (which waits for head-teacher approval). Real students never sign
+  -- in — they use a per-student code — so a signed-in 'student/none' profile
+  -- is simply a staff member who hasn't registered yet.
+  insert into public.profiles (id, full_name, email, role, staff_status)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     new.email,
-    coalesce(new.raw_user_meta_data->>'role', 'student')
+    'student',
+    'none'
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 create or replace trigger on_auth_user_created
   after insert on auth.users
@@ -377,7 +385,7 @@ begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 create trigger profiles_updated_at before update on public.profiles for each row execute function public.set_updated_at();
 create trigger teachers_updated_at before update on public.teachers for each row execute function public.set_updated_at();
@@ -401,4 +409,305 @@ create index idx_timetable_day on public.timetable(day);
 insert into public.branches (id, name, address, is_main) values
   ('b0000000-0000-0000-0000-000000000001', 'Noida Central Branch', 'Sector 12, Noida, UP', true),
   ('b0000000-0000-0000-0000-000000000002', 'Sector 18 Branch', 'Atta Market, Noida, UP', false),
-  ('b0000000-0000-0000-0000-000000000003', 'Indirapuram Branch', 'Shakti Khand, Ghaziabad', false);
+  ('b0000000-0000-0000-0000-000000000003', 'Indirapuram Branch', 'Shakti Khand, Ghaziabad', false)
+on conflict (id) do nothing;
+
+-- ============================================================================
+-- PRODUCTION MIGRATION — safe to run on an existing database (idempotent)
+-- Run this whole block in the Supabase SQL Editor after the schema above.
+-- ============================================================================
+
+-- ---- Staff registration & approval columns (idempotent) --------------------
+alter table public.profiles add column if not exists staff_status text
+  not null default 'none';
+alter table public.profiles drop constraint if exists profiles_staff_status_chk;
+alter table public.profiles add constraint profiles_staff_status_chk
+  check (staff_status in ('none', 'pending', 'approved', 'rejected'));
+alter table public.profiles add column if not exists head_requested boolean
+  not null default false;
+alter table public.profiles alter column role set default 'student';
+
+-- Helper: does an approved head teacher already exist?
+create or replace function public.head_exists()
+returns boolean language sql security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where role = 'admin' and staff_status = 'approved');
+$$;
+
+-- Register the caller as Head Teacher — ONLY allowed if no head exists yet.
+create or replace function public.register_as_head()
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  if public.head_exists() then
+    raise exception 'A head teacher already exists. Ask them to grant you access.';
+  end if;
+  update public.profiles
+    set role = 'admin', staff_status = 'approved', head_requested = false
+    where id = auth.uid();
+  return 'admin';
+end; $$;
+
+-- Register the caller as a Teacher — goes into 'pending' until head approves.
+create or replace function public.register_as_teacher()
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  update public.profiles
+    set role = 'teacher',
+        staff_status = case when staff_status = 'approved' then 'approved' else 'pending' end
+    where id = auth.uid();
+  return 'teacher';
+end; $$;
+
+-- An approved teacher asks to be promoted to head teacher.
+create or replace function public.request_head()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update public.profiles set head_requested = true
+    where id = auth.uid() and role = 'teacher' and staff_status = 'approved';
+end; $$;
+
+-- Head-only: list all staff (teachers + heads) for the approvals screen.
+create or replace function public.list_staff()
+returns table (id uuid, full_name text, email text, role text, staff_status text, head_requested boolean, created_at timestamptz)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  return query
+    select p.id, p.full_name, p.email, p.role, p.staff_status, p.head_requested, p.created_at
+    from public.profiles p
+    where p.staff_status <> 'none'
+    order by (p.staff_status = 'pending') desc, p.created_at desc;
+end; $$;
+
+-- Head-only mutations on staff members.
+create or replace function public.approve_teacher(p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  update public.profiles set role = 'teacher', staff_status = 'approved' where id = p_id;
+end; $$;
+
+create or replace function public.reject_teacher(p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  update public.profiles set staff_status = 'rejected', head_requested = false where id = p_id;
+end; $$;
+
+create or replace function public.grant_head(p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  update public.profiles set role = 'admin', staff_status = 'approved', head_requested = false where id = p_id;
+end; $$;
+
+create or replace function public.remove_staff(p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  if p_id = auth.uid() then
+    raise exception 'You cannot remove yourself';
+  end if;
+  update public.profiles set role = 'student', staff_status = 'rejected', head_requested = false where id = p_id;
+end; $$;
+
+revoke all on function public.head_exists() from public, anon;
+revoke all on function public.register_as_head() from public, anon;
+revoke all on function public.register_as_teacher() from public, anon;
+revoke all on function public.request_head() from public, anon;
+revoke all on function public.list_staff() from public, anon;
+revoke all on function public.approve_teacher(uuid) from public, anon;
+revoke all on function public.reject_teacher(uuid) from public, anon;
+revoke all on function public.grant_head(uuid) from public, anon;
+revoke all on function public.remove_staff(uuid) from public, anon;
+grant execute on function public.head_exists() to authenticated;
+grant execute on function public.register_as_head() to authenticated;
+grant execute on function public.register_as_teacher() to authenticated;
+grant execute on function public.request_head() to authenticated;
+grant execute on function public.list_staff() to authenticated;
+grant execute on function public.approve_teacher(uuid) to authenticated;
+grant execute on function public.reject_teacher(uuid) to authenticated;
+grant execute on function public.grant_head(uuid) to authenticated;
+grant execute on function public.remove_staff(uuid) to authenticated;
+
+-- ---- Role-aware RLS helpers + policy hardening -----------------------------
+-- is_staff() = approved admin OR approved teacher; is_head() = approved admin.
+-- Pending/rejected teachers and unregistered users get NOTHING.
+create or replace function public.is_head()
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved');
+$$;
+create or replace function public.is_staff()
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role in ('admin','teacher') and staff_status = 'approved');
+$$;
+revoke all on function public.is_head() from public, anon;
+revoke all on function public.is_staff() from public, anon;
+grant execute on function public.is_head() to authenticated;
+grant execute on function public.is_staff() to authenticated;
+
+-- Trigger functions are invoked by the trigger system, never called directly —
+-- no role needs EXECUTE on them.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.set_updated_at() from public, anon, authenticated;
+
+-- profiles: read own row only; head teachers can read all (for approvals).
+-- Role/status changes happen ONLY through the SECURITY DEFINER RPCs above.
+drop policy if exists "Profiles are viewable by authenticated" on public.profiles;
+drop policy if exists "Users can update own profile" on public.profiles;
+drop policy if exists "profiles_select_self_or_head" on public.profiles;
+create policy "profiles_select_self_or_head" on public.profiles for select to authenticated
+  using (id = auth.uid() or public.is_head());
+
+-- students: approved staff read; only head teachers write.
+drop policy if exists "Staff can view all students" on public.students;
+drop policy if exists "Staff can manage students" on public.students;
+drop policy if exists "students_select_staff" on public.students;
+drop policy if exists "students_write_head" on public.students;
+create policy "students_select_staff" on public.students for select to authenticated using (public.is_staff());
+create policy "students_write_head" on public.students for all to authenticated using (public.is_head()) with check (public.is_head());
+
+-- Daily-update tables: any approved staff (head or teacher) may write.
+drop policy if exists "Staff can manage attendance" on public.attendance;
+create policy "attendance_staff" on public.attendance for all to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "Staff can manage tests" on public.tests;
+create policy "tests_staff" on public.tests for all to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "Staff can manage results" on public.results;
+create policy "results_staff" on public.results for all to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "Staff manage assignments" on public.assignments;
+create policy "assignments_staff" on public.assignments for all to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "Staff manage reminders" on public.reminders;
+create policy "reminders_staff" on public.reminders for all to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "Staff manage notifications" on public.notifications;
+create policy "notifications_staff" on public.notifications for all to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "Staff manage timetable" on public.timetable;
+create policy "timetable_staff" on public.timetable for all to authenticated using (public.is_staff()) with check (public.is_staff());
+
+-- Head-only tables: staff records, fees, meetings, branches, subjects, billing.
+drop policy if exists "Admins can manage teachers" on public.teachers;
+create policy "teachers_head" on public.teachers for all to authenticated using (public.is_head()) with check (public.is_head());
+drop policy if exists "Staff manage fees" on public.fees;
+create policy "fees_head" on public.fees for all to authenticated using (public.is_head()) with check (public.is_head());
+drop policy if exists "Staff manage meetings" on public.meetings;
+create policy "meetings_head" on public.meetings for all to authenticated using (public.is_head()) with check (public.is_head());
+drop policy if exists "Admins can manage branches" on public.branches;
+create policy "branches_head" on public.branches for all to authenticated using (public.is_head()) with check (public.is_head());
+drop policy if exists "subjects_head" on public.subjects;
+create policy "subjects_head" on public.subjects for all to authenticated using (public.is_head()) with check (public.is_head());
+drop policy if exists "Admins manage subscriptions" on public.subscriptions;
+create policy "subscriptions_head" on public.subscriptions for all to authenticated using (public.is_head()) with check (public.is_head());
+
+-- ---- Student code access (no login) ----------------------------------------
+-- Returns ONLY the one student matching the code, with everything their app
+-- needs. The code is the credential; this runs with definer rights so it
+-- works for anonymous (not-signed-in) students without opening up the tables.
+create or replace function public.get_student_snapshot(p_code text)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_student public.students;
+  v_result json;
+begin
+  if length(coalesce(p_code, '')) < 4 then
+    return null;
+  end if;
+
+  select * into v_student from public.students where student_code = p_code;
+  if v_student.id is null then
+    return null;
+  end if;
+
+  select json_build_object(
+    'student', json_build_object(
+      'dbId', v_student.id,
+      'name', v_student.name,
+      'klass', v_student.class,
+      'school', v_student.school,
+      'code', v_student.student_code,
+      'parent', v_student.parent_contact,
+      'address', v_student.address,
+      'feeStatus', v_student.fee_status
+    ),
+    'attendance', coalesce((
+      select json_agg(json_build_object('date', a.date, 'status', a.status) order by a.date desc)
+      from public.attendance a where a.student_id = v_student.id
+    ), '[]'::json),
+    'results', coalesce((
+      select json_agg(json_build_object(
+        'subject', s.name, 'test', t.name, 'date', t.date,
+        'marks', r.marks, 'total', t.max_marks
+      ) order by t.date desc)
+      from public.results r
+      join public.tests t on t.id = r.test_id
+      join public.subjects s on s.id = t.subject_id
+      where r.student_id = v_student.id
+    ), '[]'::json),
+    'fees', coalesce((
+      select json_agg(json_build_object(
+        'period', f.period, 'amount', f.amount, 'status', f.status,
+        'dueDate', f.due_date, 'paidDate', f.paid_date
+      ) order by f.due_date desc)
+      from public.fees f where f.student_id = v_student.id
+    ), '[]'::json),
+    'notifications', coalesce((
+      select json_agg(json_build_object(
+        'title', n.title, 'detail', n.detail, 'icon', n.icon, 'createdAt', n.created_at
+      ) order by n.created_at desc)
+      from public.notifications n where n.student_id = v_student.id
+    ), '[]'::json),
+    'teachers', coalesce((
+      select json_agg(json_build_object(
+        'name', te.name, 'subject', te.subject, 'experience', te.experience,
+        'qualification', te.qualification, 'rating', te.rating, 'about', te.about
+      ) order by te.created_at desc)
+      from public.teachers te
+    ), '[]'::json),
+    'rankings', coalesce((
+      select json_object_agg(subject, arr)
+      from (
+        select subject, json_agg(json_build_array(name, pct) order by pct desc) as arr
+        from (
+          select s.name as subject, st.name as name,
+            round(sum(r.marks)::numeric / nullif(sum(t.max_marks), 0) * 100)::int as pct
+          from public.results r
+          join public.tests t on t.id = r.test_id
+          join public.subjects s on s.id = t.subject_id
+          join public.students st on st.id = r.student_id
+          group by s.name, st.name
+        ) per_student
+        group by subject
+      ) ranked
+    ), '{}'::json)
+  ) into v_result;
+
+  return v_result;
+end; $$;
+
+revoke all on function public.get_student_snapshot(text) from public;
+grant execute on function public.get_student_snapshot(text) to anon, authenticated;
+
+-- A student updating their own contact info (scoped strictly to their code).
+-- Blank values are ignored so partial edits don't wipe fields.
+create or replace function public.update_student_self(p_code text, p_name text, p_parent text, p_address text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if length(coalesce(p_code, '')) < 4 then
+    raise exception 'Invalid code';
+  end if;
+  update public.students set
+    name = coalesce(nullif(trim(p_name), ''), name),
+    parent_contact = coalesce(nullif(trim(p_parent), ''), parent_contact),
+    address = coalesce(nullif(trim(p_address), ''), address)
+  where student_code = p_code;
+end; $$;
+
+revoke all on function public.update_student_self(text, text, text, text) from public;
+grant execute on function public.update_student_self(text, text, text, text) to anon, authenticated;

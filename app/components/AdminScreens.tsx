@@ -1,98 +1,45 @@
 'use client'
 
-import { useState } from 'react'
-import { useDashboard } from '../store'
+import { useEffect } from 'react'
+import { useDashboard, initials, av } from '../store'
 import { ScreenHeader, ChevronRight } from './Shell'
 
-export function AdminGate() {
-  const { pinError, back, liveMode, tryUnlockAdmin } = useDashboard()
-  const [code, setCode] = useState('')
-
-  const handleUnlock = () => { tryUnlockAdmin(code) }
-
-  return (
-    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6 min-h-[560px] flex flex-col">
-      <ScreenHeader title="Admin Access" onBack={back} />
-      <div className="text-center mb-2">
-        <div className="w-[72px] h-[72px] rounded-[22px] bg-td-dark flex items-center justify-center mx-auto mb-[18px]">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        </div>
-        <div className="text-[17px] font-extrabold text-td-dark">Enter access code</div>
-        <div className="text-[13px] text-td-muted mt-1.5 leading-relaxed">This area is for teachers &amp; admins only.<br/>Enter the code set by the head teacher.</div>
-      </div>
-
-      <input
-        type="password" value={code}
-        onChange={e => setCode(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-        placeholder="Enter code"
-        className="w-full max-w-[260px] mx-auto border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.3em] font-bold mt-6 mb-3"
-      />
-
-      {pinError && <div className="text-center text-[12.5px] font-bold text-td-red mb-1.5">{liveMode ? 'Wrong code' : 'Wrong code — try 1234'}</div>}
-      {!liveMode && <div className="text-[11.5px] text-td-subtle text-center mb-5">Demo code: 1234</div>}
-      {liveMode && <div className="h-5 mb-5" />}
-
-      <button onClick={handleUnlock} className="w-full max-w-[260px] mx-auto border-none bg-td-primary text-white text-[15px] font-extrabold py-[15px] rounded-2xl cursor-pointer">
-        Unlock
-      </button>
-    </div>
-  )
-}
-
 export function AdminPanel() {
-  const { back, notify, goFrom, set, setAdminPin, liveMode, students, teachers, googleEmail } = useDashboard()
-  const [showPinForm, setShowPinForm] = useState(false)
-  const [newPin, setNewPin] = useState('')
-  const [confirmPin, setConfirmPin] = useState('')
+  const { back, goFrom, exitAdmin, students, teachers, googleEmail, staffList, loadStaff } = useDashboard()
 
-  const handleSavePin = () => {
-    if (newPin.length < 4) { notify('Code must be at least 4 characters'); return }
-    if (newPin !== confirmPin) { notify('Codes do not match'); return }
-    setAdminPin(newPin)
-    setShowPinForm(false)
-    setNewPin('')
-    setConfirmPin('')
-    notify('Access code updated')
-  }
+  // Keep the pending-approvals badge fresh whenever the head opens the dashboard.
+  useEffect(() => { loadStaff() }, [loadStaff])
+  const pendingCount = staffList.filter(s => s.status === 'pending').length
 
   const items = [
-    { icon: '👥', label: 'Manage staff', sub: 'Add, edit & assign teachers', tint: '#eaf1fc', go: () => goFrom('teachers', 'teachers', 'admin') },
+    { icon: '🛡️', label: 'Staff access & approvals', sub: 'Approve teachers · grant head access', tint: '#eef0fc', badge: pendingCount, go: () => goFrom('staffApprovals', 'teachers', 'admin') },
+    { icon: '👥', label: 'Teacher profiles', sub: 'Records shown to students', tint: '#eaf1fc', go: () => goFrom('teachers', 'teachers', 'admin') },
     { icon: '🎓', label: 'Manage students', sub: 'Enrol & edit student records', tint: '#e7f5ee', go: () => goFrom('students', 'students', 'admin') },
     { icon: '💳', label: 'Fees & collections', sub: 'Track payments & send alerts', tint: '#fdecea', go: () => goFrom('fees', 'home', 'admin') },
     { icon: '🏆', label: 'Publish rankings', sub: 'Subject-wise leaderboards', tint: '#fcf3e3', go: () => goFrom('rankings', 'home', 'admin') },
     { icon: '📅', label: 'Meetings', sub: 'Staff & parent meetings', tint: '#eaf1fc', go: () => goFrom('meetings', 'home', 'admin') },
     { icon: '🏢', label: 'Branches', sub: 'Manage all centres', tint: '#eef0fc', go: () => goFrom('branches', 'home', 'admin') },
     { icon: '📖', label: 'Subjects', sub: 'Add & manage subjects', tint: '#eaf1fc', go: () => goFrom('subjects', 'home', 'admin') },
-    { icon: '💎', label: 'Subscription', sub: 'Plans & billing (staff only)', tint: '#fcf3e3', go: () => goFrom('subscription', 'home', 'admin') },
+    { icon: '💎', label: 'Subscription', sub: 'Plans & billing', tint: '#fcf3e3', go: () => goFrom('subscription', 'home', 'admin') },
   ]
-
-  const lockAdmin = () => {
-    set({ adminUnlocked: false })
-    notify('Admin locked')
-    useDashboard.getState().go('home')
-  }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <div className="flex items-center justify-between mb-2">
         <ScreenHeader title="Admin Dashboard" onBack={back} right={
-          <button onClick={lockAdmin} className="border-none bg-[#eef1f7] text-td-muted text-xs font-bold py-[9px] px-[13px] rounded-[13px] cursor-pointer flex items-center gap-1.5">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7689" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            Lock
-          </button>
+          <button onClick={exitAdmin} className="border-none bg-[#eef1f7] text-td-muted text-xs font-bold py-[9px] px-[13px] rounded-[13px] cursor-pointer">Done</button>
         } />
       </div>
 
       <div className="inline-flex items-center gap-[7px] bg-[#e7f5ee] rounded-[20px] py-[7px] px-[13px] mt-1.5 mb-5">
         <span className="w-2 h-2 rounded-full bg-td-green" />
-        <span className="text-xs font-bold text-td-green">Unlocked as {googleEmail?.split('@')[0] ?? 'Admin'}</span>
+        <span className="text-xs font-bold text-td-green">Head teacher · {googleEmail?.split('@')[0] ?? 'Admin'}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-[11px] mb-[22px]">
         {[
           { v: String(students.length), l: 'Total students' },
-          { v: String(teachers.length), l: 'Staff members' },
+          { v: String(teachers.length), l: 'Teacher profiles' },
           { v: String(students.filter(s => s.feeStatus === 'Paid').length), l: 'Fees clear', c: '#2fa36b' },
           { v: String(students.filter(s => s.feeStatus !== 'Paid').length), l: 'Fees pending', c: '#e8553c' },
         ].map(s => (
@@ -112,41 +59,83 @@ export function AdminPanel() {
               <div className="text-sm font-bold text-td-dark">{m.label}</div>
               <div className="text-[11.5px] text-td-subtle mt-0.5">{m.sub}</div>
             </div>
+            {!!m.badge && m.badge > 0 && <span className="text-[11px] font-extrabold text-white bg-td-red rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">{m.badge}</span>}
             <ChevronRight />
           </button>
         ))}
       </div>
+    </div>
+  )
+}
 
-      <div className="mt-[22px]">
-        <button onClick={() => setShowPinForm(p => !p)} className="w-full text-left bg-white border border-td-border rounded-[18px] p-4 cursor-pointer flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#fcf3e3] shrink-0 flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e0962f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-bold text-td-dark">Change Access Code</div>
-            <div className="text-[11.5px] text-td-subtle mt-0.5">Set your own admin access code</div>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round"><path d={showPinForm ? 'm6 9 6 6 6-6' : 'm9 18 6-6-6-6'}/></svg>
-        </button>
+export function StaffApprovalsScreen() {
+  const { back, staffList, loadStaff, approveTeacher, rejectTeacher, grantHead, removeStaff, supabaseUserId } = useDashboard()
 
-        {showPinForm && (
-          <div className="bg-white border border-td-border border-t-0 rounded-b-[18px] -mt-[3px] p-4 flex flex-col gap-3">
-            <input type="password" maxLength={20}
-              value={newPin} onChange={e => setNewPin(e.target.value)}
-              placeholder="New access code (min 4 chars)"
-              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.3em]"
-            />
-            <input type="password" maxLength={20}
-              value={confirmPin} onChange={e => setConfirmPin(e.target.value)}
-              placeholder="Confirm code"
-              className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.3em]"
-            />
-            <button onClick={handleSavePin} className="w-full border-none bg-td-primary text-white text-[14px] font-extrabold py-[13px] rounded-[14px] cursor-pointer">
-              Save access code
-            </button>
-          </div>
-        )}
-      </div>
+  useEffect(() => { loadStaff() }, [loadStaff])
+
+  const pending = staffList.filter(s => s.status === 'pending')
+  const active = staffList.filter(s => s.status === 'approved')
+
+  return (
+    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
+      <ScreenHeader title="Staff access" onBack={back} />
+
+      <div className="text-[13px] text-td-muted leading-relaxed mb-5">Approve teachers so they can mark attendance and enter marks. Grant head access only to people you fully trust.</div>
+
+      <div className="text-sm font-extrabold text-td-dark mb-3">Pending approval {pending.length > 0 && <span className="text-td-red">· {pending.length}</span>}</div>
+      {pending.length === 0 ? (
+        <div className="text-center text-td-muted text-[13px] py-4 bg-white border border-td-border rounded-[16px] mb-6">No one waiting</div>
+      ) : (
+        <div className="flex flex-col gap-2.5 mb-6">
+          {pending.map((s, i) => (
+            <div key={s.id} className="bg-white border border-td-border rounded-[16px] p-3.5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i) }}>{initials(s.name)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-extrabold text-td-dark truncate">{s.name}</div>
+                  <div className="text-[11.5px] text-td-muted truncate">{s.email}</div>
+                </div>
+              </div>
+              <div className="flex gap-2.5">
+                <button onClick={() => approveTeacher(s.id)} className="flex-1 border-none bg-td-green text-white text-[13px] font-bold py-2.5 rounded-[12px] cursor-pointer">Approve</button>
+                <button onClick={() => rejectTeacher(s.id)} className="flex-1 border border-td-border bg-white text-td-muted text-[13px] font-bold py-2.5 rounded-[12px] cursor-pointer">Reject</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="text-sm font-extrabold text-td-dark mb-3">Active staff</div>
+      {active.length === 0 ? (
+        <div className="text-center text-td-muted text-[13px] py-4 bg-white border border-td-border rounded-[16px]">No active staff yet</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {active.map((s, i) => {
+            const isHead = s.role === 'admin'
+            const isSelf = s.id === supabaseUserId
+            return (
+              <div key={s.id} className="bg-white border border-td-border rounded-[16px] p-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[13px]" style={{ background: av(i + 3) }}>{initials(s.name)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-extrabold text-td-dark truncate">{s.name}{isSelf && <span className="text-td-muted font-semibold"> · you</span>}</div>
+                    <div className="text-[11.5px] text-td-muted truncate">{s.email}</div>
+                  </div>
+                  <span className="text-[10.5px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: isHead ? '#2a6fdb' : '#2fa36b', background: isHead ? '#eaf1fc' : '#e7f5ee' }}>{isHead ? 'Head' : 'Teacher'}</span>
+                </div>
+                {!isHead && (
+                  <div className="flex gap-2.5 mt-3">
+                    <button onClick={() => grantHead(s.id)} className="flex-1 border border-td-primary bg-white text-td-primary text-[12.5px] font-bold py-2.5 rounded-[12px] cursor-pointer">
+                      {s.headRequested ? 'Grant head (requested)' : 'Make head teacher'}
+                    </button>
+                    <button onClick={() => removeStaff(s.id)} className="border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-[12.5px] font-bold py-2.5 px-4 rounded-[12px] cursor-pointer">Remove</button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

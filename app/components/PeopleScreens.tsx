@@ -4,7 +4,8 @@ import { useDashboard, initials, av, feeColor, GRADIENTS } from '../store'
 import { ScreenHeader, PrimaryButton, BackButton, ChevronRight } from './Shell'
 
 export function StudentsScreen() {
-  const { students, origin, back, go, goFrom, set, searchQuery } = useDashboard()
+  const { students, role, origin, back, go, goFrom, set, searchQuery } = useDashboard()
+  const isAdmin = role === 'admin'
   const filtered = searchQuery ? students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())) : students
 
   return (
@@ -14,9 +15,11 @@ export function StudentsScreen() {
           {origin === 'admin' && <BackButton onClick={back} />}
           <div className="text-2xl font-extrabold text-td-dark">Students</div>
         </div>
-        <button onClick={() => origin === 'admin' ? goFrom('addStudent', 'students', 'admin') : go('addStudent', 'students')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
-          <span className="text-base leading-none">+</span> Add
-        </button>
+        {isAdmin && (
+          <button onClick={() => origin === 'admin' ? goFrom('addStudent', 'students', 'admin') : go('addStudent', 'students')} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+            <span className="text-base leading-none">+</span> Add
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2.5 bg-white border border-td-border rounded-[14px] p-[11px] px-3.5 mb-[18px]">
@@ -32,14 +35,14 @@ export function StudentsScreen() {
             const idx = students.indexOf(s)
             const f = feeColor(s.feeStatus)
             return (
-              <button key={s.id || i} onClick={() => set({ editIndex: idx, screen: 'editStudent', tab: 'students', ...(origin === 'admin' ? { origin: 'admin' } : {}) })} className="text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] cursor-pointer">
+              <button key={s.id || i} disabled={!isAdmin} onClick={() => set({ editIndex: idx, screen: 'editStudent', tab: 'students', ...(origin === 'admin' ? { origin: 'admin' } : {}) })} className={`text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`}>
                 <div className="w-[46px] h-[46px] rounded-[14px] shrink-0 flex items-center justify-center text-white font-bold text-[15px]" style={{ background: av(idx) }}>{initials(s.name)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-extrabold text-td-dark">{s.name}</div>
                   <div className="text-xs text-td-muted mt-0.5">{s.klass} · {s.attendance}% attendance</div>
                 </div>
                 <span className="text-[10.5px] font-bold py-[5px] px-[9px] rounded-[20px]" style={{ color: f.c, background: f.b }}>{s.feeStatus}</span>
-                <ChevronRight />
+                {isAdmin && <ChevronRight />}
               </button>
             )
           })}
@@ -51,7 +54,7 @@ export function StudentsScreen() {
 
 export function EditStudentScreen() {
   const { students, editIndex, origin, go, goFrom, setStudentField, deleteStudent, notify } = useDashboard()
-  const st = students[editIndex] || students[0]
+  const st = students[editIndex]
   if (!st) return <div className="p-5 text-center text-td-muted">No student selected</div>
 
   return (
@@ -138,13 +141,6 @@ export function AddStudentScreen() {
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Add Student" onBack={backToList} />
 
-      <div className="flex justify-center mb-5">
-        <div className="w-[88px] h-[88px] rounded-full border-2 border-dashed border-[#c2cad8] bg-white flex flex-col items-center justify-center gap-[3px]">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2" strokeLinecap="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          <span className="text-[9px] text-td-subtle font-bold">Photo</span>
-        </div>
-      </div>
-
       <div className="flex flex-col gap-3.5 mb-[22px]">
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={newStudent.name} onChange={e => setNewStudent({ name: e.target.value })} placeholder="Student name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div className="grid grid-cols-2 gap-[11px]">
@@ -221,20 +217,13 @@ export function StaffScreen() {
 }
 
 export function AddTeacherScreen() {
-  const { newTeacher: nt, subjects, origin, go, goFrom, setNewTeacher, saveTeacher } = useDashboard()
+  const { newTeacher: nt, subjects, branchesList, origin, go, goFrom, setNewTeacher, saveTeacher } = useDashboard()
   const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']
   const backToList = () => origin === 'admin' ? goFrom('teachers', 'teachers', 'admin') : go('teachers', 'teachers')
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Add Teacher" onBack={backToList} />
-
-      <div className="flex justify-center mb-5">
-        <div className="w-[88px] h-[88px] rounded-3xl border-2 border-dashed border-[#c2cad8] bg-white flex flex-col items-center justify-center gap-[3px]">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2" strokeLinecap="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          <span className="text-[9px] text-td-subtle font-bold">Photo</span>
-        </div>
-      </div>
 
       <div className="flex flex-col gap-3.5 mb-[22px]">
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={nt.name} onChange={e => setNewTeacher({ name: e.target.value })} placeholder="Teacher name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
@@ -246,7 +235,12 @@ export function AddTeacherScreen() {
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Qualification</label><input value={nt.qualification} onChange={e => setNewTeacher({ qualification: e.target.value })} placeholder="e.g. M.Sc, B.Ed" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div className="grid grid-cols-2 gap-[11px]">
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Years of exp.</label><input value={nt.experience} onChange={e => setNewTeacher({ experience: e.target.value })} placeholder="0" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
-          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch</label><select className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none"><option>All branches</option></select></div>
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Branch</label>
+            <select value={nt.branch} onChange={e => setNewTeacher({ branch: e.target.value })} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+              <option value="">All branches</option>
+              {branchesList.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+            </select>
+          </div>
         </div>
       </div>
       <PrimaryButton onClick={saveTeacher}>Save teacher</PrimaryButton>

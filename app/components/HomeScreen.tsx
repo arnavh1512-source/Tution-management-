@@ -3,28 +3,26 @@
 import { useDashboard, initials, type Screen } from '../store'
 
 export function HomeScreen() {
-  const { role, go, set, schedule, students, teachers, branchesList, googleEmail } = useDashboard()
+  const { role, go, schedule, students, teachers, branchesList, googleEmail } = useDashboard()
   const isAdmin = role === 'admin'
   const mainBranch = branchesList.find(b => b.main) ?? branchesList[0]
   const displayName = googleEmail?.split('@')[0] ?? (isAdmin ? 'Admin' : 'Teacher')
   const ini = initials(displayName)
 
-  const quickActions: { icon: string; label: string; tint: string; screen: Screen; tab?: string }[] = [
+  // Teachers get daily-update actions only; head teachers get everything.
+  const allActions: { icon: string; label: string; tint: string; screen: Screen; tab?: string; headOnly?: boolean }[] = [
     { icon: '✅', label: 'Attendance', tint: '#e7f5ee', screen: 'attendance' },
     { icon: '📊', label: 'Results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignment', tint: '#fcf3e3', screen: 'assign' },
     { icon: '🔔', label: 'Reminder', tint: '#fdecea', screen: 'reminder' },
     { icon: '🗓️', label: 'Timetable', tint: '#eef0fc', screen: 'timetable', tab: 'timetable' },
-    { icon: '💳', label: 'Fees', tint: '#e7f5ee', screen: 'fees' },
-    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings' },
-    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings' },
+    { icon: '💳', label: 'Fees', tint: '#e7f5ee', screen: 'fees', headOnly: true },
+    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings', headOnly: true },
+    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
   ]
+  const quickActions = allActions.filter(a => isAdmin || !a.headOnly)
 
-  const openAdmin = () => {
-    const s = useDashboard.getState()
-    if (s.adminUnlocked) go('admin')
-    else { set({ pin: '', pinError: false }); go('adminGate') }
-  }
+  const openAdmin = () => go('admin')
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -36,9 +34,8 @@ export function HomeScreen() {
             <div className="text-[17px] font-extrabold text-td-dark">{displayName}</div>
           </div>
         </div>
-        <div className="w-[42px] h-[42px] rounded-[14px] border border-td-border bg-white flex items-center justify-center relative">
+        <div className="w-[42px] h-[42px] rounded-[14px] border border-td-border bg-white flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a2332" strokeWidth="2" strokeLinecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-          <span className="absolute top-[9px] right-[10px] w-2 h-2 rounded-full bg-td-red border-2 border-white" />
         </div>
       </div>
 
@@ -66,7 +63,7 @@ export function HomeScreen() {
           </div>
           <div className="flex-1">
             <div className="text-sm font-extrabold text-white">Admin Dashboard</div>
-            <div className="text-xs text-[#9aa9bd] mt-0.5">Head teacher only · PIN protected</div>
+            <div className="text-xs text-[#9aa9bd] mt-0.5">Approvals · staff · students · fees</div>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7689" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         </button>

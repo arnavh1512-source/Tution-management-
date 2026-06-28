@@ -189,7 +189,7 @@ export function AttendanceScreen() {
 }
 
 export function ResultsScreen() {
-  const { students, subjects, back, notify, liveMode } = useDashboard()
+  const { students, subjects, back, notify } = useDashboard()
   const [klass, setKlass] = useState('Class 10-B')
   const [subject, setSubject] = useState('Mathematics')
   const [testName, setTestName] = useState('Unit Test')
@@ -201,22 +201,19 @@ export function ResultsScreen() {
 
   const handlePublish = async () => {
     if (!testName.trim()) { notify('Enter test name'); return }
-    if (liveMode) {
-      const { supabase } = await import('../lib/supabase')
-      const subjectId = useDashboard.getState().subjects.find(s => s.name === subject)?.dbId
-      const { data: test } = await supabase.from('tests').insert({
-        name: testName, subject_id: subjectId ?? null, class: klass,
-        max_marks: Number(maxMarks) || 50, date: new Date().toISOString().split('T')[0],
-      }).select().single()
-      if (test) {
-        const resultRows = Object.entries(marks).map(([idx, m]) => {
-          const student = students.filter(s => s.klass === klass)[Number(idx)]
-          if (!student?.dbId || !m) return null
-          return { test_id: test.id, student_id: student.dbId, marks: Number(m) }
-        }).filter(Boolean)
-        if (resultRows.length) await supabase.from('results').insert(resultRows as any[])
-      }
-    }
+    const { supabase } = await import('../lib/supabase')
+    const subjectId = useDashboard.getState().subjects.find(s => s.name === subject)?.dbId
+    const { data: test, error } = await supabase.from('tests').insert({
+      name: testName, subject_id: subjectId ?? null, class: klass,
+      max_marks: Number(maxMarks) || 50, date: new Date().toISOString().split('T')[0],
+    }).select().single()
+    if (error || !test) { notify('Could not publish — try again'); return }
+    const resultRows = Object.entries(marks).map(([idx, m]) => {
+      const student = students.filter(s => s.klass === klass)[Number(idx)]
+      if (!student?.dbId || !m) return null
+      return { test_id: test.id, student_id: student.dbId, marks: Number(m) }
+    }).filter(Boolean)
+    if (resultRows.length) await supabase.from('results').insert(resultRows as any[])
     notify('Results published & parents notified')
     setMarks({})
   }
@@ -305,7 +302,7 @@ export function AssignmentsScreen() {
                 <div className="text-[13.5px] font-bold text-td-dark">{a.title}</div>
                 <span className="text-[11px] font-bold text-td-amber bg-[#fcf3e3] py-1 px-[9px] rounded-[20px] whitespace-nowrap">Due {a.due}</span>
               </div>
-              <div className="text-xs text-td-muted mt-[5px]">{a.klass} · {a.submitted}/{a.total} submitted</div>
+              <div className="text-xs text-td-muted mt-[5px]">{a.klass} · {a.total} students</div>
             </div>
           ))}
         </div>

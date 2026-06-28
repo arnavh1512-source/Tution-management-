@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { useDashboard, type Teacher, type Student, type FeeStatus, type MeetingItem, type AssignmentItem, type BranchItem, type StuResultItem, type AttLogItem, type NotifItem, type FeeHistoryItem, type ScheduleItem } from '../store'
+import { useDashboard, type Role, type StaffStatus, type Teacher, type Student, type FeeStatus, type MeetingItem, type AssignmentItem, type BranchItem, type StuResultItem, type AttLogItem, type NotifItem, type FeeHistoryItem, type ScheduleItem } from '../store'
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const { setAuth, loadTeachers, loadStudents, set } = useDashboard()
@@ -10,26 +10,40 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) handleAuth(session.user.id, session.user.email ?? '')
-      else set({ authLoading: false })
+      else resumeStudentOrLanding()
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) handleAuth(session.user.id, session.user.email ?? '')
-      else set({ authLoading: false })
+      else resumeStudentOrLanding()
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  async function handleAuth(userId: string, email: string) {
-    const { data: profile } = await supabase.from('profiles').select('role, admin_pin').eq('id', userId).single()
-    const role = (profile?.role as 'admin' | 'teacher' | 'student') ?? 'student'
-    if (profile?.admin_pin) set({ adminPin: profile.admin_pin as string })
-    setAuth(userId, role, email)
-    await fetchAllData(userId, role)
+  // No Google session: a returning student may have a saved code; otherwise land on login.
+  function resumeStudentOrLanding() {
+    const code = typeof window !== 'undefined' ? localStorage.getItem('student_code') : null
+    if (code) {
+      useDashboard.getState().loadStudentByCode(code).then(ok => { if (!ok) set({ authLoading: false }) })
+    } else {
+      set({ authLoading: false })
+    }
   }
 
-  async function fetchAllData(userId: string, role: string) {
+  async function handleAuth(userId: string, email: string) {
+    const { data: profile } = await supabase.from('profiles').select('role, staff_status').eq('id', userId).single()
+    const role = (profile?.role as Role) ?? 'student'
+    const staffStatus = (profile?.staff_status as StaffStatus) ?? 'none'
+    const { data: headExists } = await supabase.rpc('head_exists')
+    setAuth(userId, role, email, staffStatus, !!headExists)
+    // Only approved staff load the centre's full dataset.
+    if ((role === 'admin' || role === 'teacher') && staffStatus === 'approved') {
+      await fetchAllData()
+    }
+  }
+
+  async function fetchAllData() {
     const [
       { data: teachers },
       { data: students },
@@ -45,7 +59,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       { data: attendance },
     ] = await Promise.all([
       supabase.from('teachers').select('*').order('created_at', { ascending: false }),
-      supabase.from('students').select('*').order('created_at', { ascending: false }),
+      supabase.from('students').select('id,name,class,school,parent_contact,student_code,fee_status,address,branch_id,profile_id,created_at').order('created_at', { ascending: false }),
       supabase.from('branches').select('*').order('is_main', { ascending: false }),
       supabase.from('meetings').select('*').order('date', { ascending: false }),
       supabase.from('assignments').select('*').order('due_date', { ascending: false }),
@@ -66,12 +80,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
     loadTeachers(mappedTeachers)
     loadStudents(mappedStudents)
-
-    // Identify current student for student role
-    if (role === 'student') {
-      const myStudent = (students ?? []).find((s: any) => s.profile_id === userId)
-      if (myStudent) set({ currentStudentDbId: (myStudent as any).id as string })
-    }
 
     // Branches — count per-branch
     const branchesList: BranchItem[] = (branches ?? []).map((b: any) => ({
@@ -108,7 +116,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     for (const t of (timetable ?? []) as any[]) {
       const day = t.day as string
       if (!timetableData[day]) timetableData[day] = []
-      timetableData[day].push([t.start_time, t.end_time, subjectMap[t.subject_id] ?? t.subject_id, t.class ?? '', t.room ?? ''])
+      timetableData[day].push([t.start_time, t.end_time, t.subject ?? '', t.class ?? '', t.room ?? ''])
     }
 
     // Today's schedule
@@ -195,7 +203,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     // Notifications (for student view)
     const stuNotifications: NotifItem[] = (notifications ?? []).map((n: any) => ({
       icon: n.icon ?? '📢', tint: n.tint ?? '#eaf1fc',
-      title: n.title ?? '', detail: n.message ?? '',
+      title: n.title ?? '', detail: n.detail ?? '',
       when: timeAgo(n.created_at), dbId: n.id,
     }))
 

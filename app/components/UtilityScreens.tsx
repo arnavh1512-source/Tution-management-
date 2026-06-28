@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useDashboard, PLAN_META, PLAN_PERKS, initials, av, feeColor, type Screen } from '../store'
+import { useDashboard, PLAN_META, PLAN_PERKS, REMINDER_TEMPLATES, initials, av, feeColor, type Screen } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function FeesScreen() {
-  const { students, back, notify, addFee, toggleFeeStatus } = useDashboard()
+  const { students, back, notify, addFee, toggleFeeStatus, saveReminder } = useDashboard()
   const [showForm, setShowForm] = useState(false)
   const [selStudent, setSelStudent] = useState('')
   const [amount, setAmount] = useState('')
@@ -68,7 +68,7 @@ export function FeesScreen() {
         </div>
       )}
 
-      <button onClick={() => notify('Fee alerts sent to pending students')} className="w-full border border-td-red bg-white text-td-red text-sm font-extrabold p-[13px] rounded-[14px] cursor-pointer mb-[18px]">Send alert to all pending</button>
+      <button onClick={() => { if (pendingCount === 0) { notify('No pending fees'); return } saveReminder('Fee', REMINDER_TEMPLATES.Fee, 'all', 'fees_due') }} className="w-full border border-td-red bg-white text-td-red text-sm font-extrabold p-[13px] rounded-[14px] cursor-pointer mb-[18px]">Send alert to all pending</button>
 
       {rows.length === 0 ? (
         <div className="text-center text-td-muted text-sm py-8">No students added yet</div>
@@ -144,7 +144,7 @@ export function MeetingsScreen() {
 }
 
 export function RankingsScreen() {
-  const { rankSubject, rankData, subjects, back, set, notify } = useDashboard()
+  const { rankSubject, rankData, subjects, back, set } = useDashboard()
   const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English']
   const rows = (rankData[rankSubject] || []).map((r, i) => ({ rank: i + 1, name: r[0], score: r[1] }))
 
@@ -175,7 +175,10 @@ export function RankingsScreen() {
           ))}
         </div>
       )}
-      <PrimaryButton onClick={() => notify(`${rankSubject} rankings published`)}>Publish rankings</PrimaryButton>
+      <div className="flex items-center gap-2.5 bg-[#eaf1fc] border border-[#dbe6fa] rounded-[14px] p-3.5 mt-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span className="text-[12.5px] text-td-primary font-semibold">Rankings update automatically — students always see the latest.</span>
+      </div>
     </div>
   )
 }
@@ -281,18 +284,20 @@ export function SubjectsScreen() {
 }
 
 export function MoreScreen() {
-  const { go, signOut } = useDashboard()
-  const items: { icon: string; label: string; tint: string; screen: Screen }[] = [
+  const { go, signOut, role } = useDashboard()
+  const isAdmin = role === 'admin'
+  const allItems: { icon: string; label: string; tint: string; screen: Screen; headOnly?: boolean }[] = [
     { icon: '✅', label: 'Mark attendance', tint: '#e7f5ee', screen: 'attendance' },
     { icon: '📊', label: 'Enter results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignments', tint: '#fcf3e3', screen: 'assign' },
     { icon: '🔔', label: 'Send reminders', tint: '#fdecea', screen: 'reminder' },
-    { icon: '💳', label: 'Fees & alerts', tint: '#e7f5ee', screen: 'fees' },
-    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings' },
-    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings' },
-    { icon: '🏢', label: 'Branches', tint: '#eef0fc', screen: 'branches' },
-    { icon: '📖', label: 'Subjects', tint: '#eaf1fc', screen: 'subjects' },
+    { icon: '💳', label: 'Fees & alerts', tint: '#e7f5ee', screen: 'fees', headOnly: true },
+    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
+    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings', headOnly: true },
+    { icon: '🏢', label: 'Branches', tint: '#eef0fc', screen: 'branches', headOnly: true },
+    { icon: '📖', label: 'Subjects', tint: '#eaf1fc', screen: 'subjects', headOnly: true },
   ]
+  const items = allItems.filter(m => isAdmin || !m.headOnly)
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">

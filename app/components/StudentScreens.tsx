@@ -5,7 +5,7 @@ import { useDashboard, GRADIENTS, initials, av, stuGrade } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function StuHomeScreen() {
-  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, linkStudentProfile } = useDashboard()
+  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, loadStudentByCode } = useDashboard()
   const [linkCode, setLinkCode] = useState('')
   const me = students.find(s => s.dbId === currentStudentDbId)
 
@@ -22,7 +22,7 @@ export function StuHomeScreen() {
         <div className="text-[18px] font-extrabold text-td-dark mb-2">Link your account</div>
         <div className="text-[13px] text-td-muted text-center leading-relaxed mb-6 max-w-[280px]">Enter the student code your teacher gave you to link your account and see your data.</div>
         <input value={linkCode} onChange={e => setLinkCode(e.target.value.toUpperCase())} placeholder="e.g. TUT-1234" className="w-full max-w-[260px] border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-wider font-bold mb-4" />
-        <PrimaryButton onClick={() => linkStudentProfile(linkCode)}>Link account</PrimaryButton>
+        <PrimaryButton onClick={() => loadStudentByCode(linkCode)}>Link account</PrimaryButton>
       </div>
     )
   }

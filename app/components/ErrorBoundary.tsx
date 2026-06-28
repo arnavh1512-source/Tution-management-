@@ -13,7 +13,7 @@ export class ErrorBoundary extends Component<Props, EState> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('App error:', error, info.componentStack)
+    console.error('App error:', error.message)
   }
 
   render() {

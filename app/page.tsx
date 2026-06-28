@@ -5,7 +5,7 @@ import { useDashboard } from './store'
 import { PhoneFrame } from './components/Shell'
 import { SupabaseProvider } from './components/SupabaseProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { LoginScreen } from './components/AuthScreens'
+import { LoginScreen, RegisterScreen, PendingScreen, DeniedScreen } from './components/AuthScreens'
 import { HomeScreen } from './components/HomeScreen'
 
 function ScreenLoading() {
@@ -19,8 +19,8 @@ function ScreenLoading() {
 const dyn = (importFn: () => Promise<Record<string, any>>, name: string) =>
   dynamic(() => importFn().then(m => ({ default: m[name] })), { loading: ScreenLoading })
 
-const AdminGate = dyn(() => import('./components/AdminScreens'), 'AdminGate')
 const AdminPanel = dyn(() => import('./components/AdminScreens'), 'AdminPanel')
+const StaffApprovalsScreen = dyn(() => import('./components/AdminScreens'), 'StaffApprovalsScreen')
 
 const TimetableScreen = dyn(() => import('./components/TeachingScreens'), 'TimetableScreen')
 const AttendanceScreen = dyn(() => import('./components/TeachingScreens'), 'AttendanceScreen')
@@ -89,8 +89,11 @@ function ScreenRouter() {
     case 'subjects': return <SubjectsScreen />
     case 'more': return <MoreScreen />
     case 'subscription': return <SubscriptionScreen />
-    case 'adminGate': return <AdminGate />
     case 'admin': return <AdminPanel />
+    case 'staffApprovals': return <StaffApprovalsScreen />
+    case 'register': return <RegisterScreen />
+    case 'pending': return <PendingScreen />
+    case 'denied': return <DeniedScreen />
     case 'stuHome': return <StuHomeScreen />
     case 'stuAttendance': return <StuAttendanceScreen />
     case 'stuResults': return <StuResultsScreen />
