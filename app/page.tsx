@@ -40,6 +40,7 @@ const RankingsScreen = dyn(() => import('./components/UtilityScreens'), 'Ranking
 const BranchesScreen = dyn(() => import('./components/UtilityScreens'), 'BranchesScreen')
 const SubjectsScreen = dyn(() => import('./components/UtilityScreens'), 'SubjectsScreen')
 const MoreScreen = dyn(() => import('./components/UtilityScreens'), 'MoreScreen')
+const StaffProfileScreen = dyn(() => import('./components/UtilityScreens'), 'StaffProfileScreen')
 const SubscriptionScreen = dyn(() => import('./components/UtilityScreens'), 'SubscriptionScreen')
 
 const StuHomeScreen = dyn(() => import('./components/StudentScreens'), 'StuHomeScreen')
@@ -89,6 +90,7 @@ function ScreenRouter() {
     case 'branches': return <BranchesScreen />
     case 'subjects': return <SubjectsScreen />
     case 'more': return <MoreScreen />
+    case 'staffProfile': return <StaffProfileScreen />
     case 'subscription': return <SubscriptionScreen />
     case 'admin': return <AdminPanel />
     case 'staffApprovals': return <StaffApprovalsScreen />

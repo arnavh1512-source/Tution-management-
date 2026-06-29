@@ -40,6 +40,18 @@ describe('setAuth landing screen', () => {
     useDashboard.getState().setAuth('u6', 'admin', 'a@x.com', 'approved', true)
     expect(useDashboard.getState().authLoading).toBe(false)
   })
+
+  it('stores the profile name and phone for the profile screen', () => {
+    useDashboard.getState().setAuth('u7', 'admin', 'a@x.com', 'approved', true, 'Arnav Hendre', '+91 90000 00000')
+    expect(useDashboard.getState().myName).toBe('Arnav Hendre')
+    expect(useDashboard.getState().myPhone).toBe('+91 90000 00000')
+  })
+
+  it('defaults name/phone to empty when not provided', () => {
+    useDashboard.getState().setAuth('u8', 'teacher', 't@x.com', 'approved', true)
+    expect(useDashboard.getState().myName).toBe('')
+    expect(useDashboard.getState().myPhone).toBe('')
+  })
 })
 
 describe('loadStudents', () => {

@@ -8,7 +8,7 @@ export type Screen =
   | 'home' | 'timetable' | 'attendance' | 'results' | 'assign' | 'reminder'
   | 'students' | 'editStudent' | 'addStudent' | 'teachers' | 'addTeacher'
   | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'more' | 'subscription'
-  | 'admin' | 'staffApprovals' | 'register' | 'pending' | 'denied'
+  | 'admin' | 'staffApprovals' | 'staffProfile' | 'register' | 'pending' | 'denied'
   | 'stuHome' | 'stuAttendance' | 'stuResults' | 'stuRanking' | 'stuTeachers'
   | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile'
 
@@ -38,7 +38,7 @@ interface State {
   attClass: string; att: Record<number, string>; rankSubject: string; ttDay: string
   toast: string; editIndex: number
   staffStatus: StaffStatus; headExists: boolean; staffList: StaffMember[]
-  googleEmail: string; reminderType: string; plan: string
+  googleEmail: string; myName: string; myPhone: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string; branch: string }
   newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string }
   stuTeacherIndex: number; stuRankSubject: string
@@ -101,7 +101,8 @@ interface Actions {
   signOut: () => void
   loadTeachers: (t: Teacher[]) => void
   loadStudents: (s: Student[]) => void
-  setAuth: (userId: string | null, role: Role, email: string, staffStatus: StaffStatus, headExists: boolean) => void
+  setAuth: (userId: string | null, role: Role, email: string, staffStatus: StaffStatus, headExists: boolean, name?: string, phone?: string) => void
+  saveStaffProfile: (name: string, phone: string) => Promise<void>
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -111,7 +112,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   attClass: '', att: {}, rankSubject: 'Mathematics', ttDay: ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
   toast: '', editIndex: 0,
   staffStatus: 'none', headExists: false, staffList: [],
-  googleEmail: '', reminderType: 'Test', plan: 'Monthly',
+  googleEmail: '', myName: '', myPhone: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '', branch: '' },
   newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' },
   teachers: [], students: [],
@@ -447,7 +448,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
 
   loadTeachers: (t) => set({ teachers: t }),
   loadStudents: (s) => set((prev) => ({ students: s, attClass: prev.attClass || (s.length ? s[0].klass : '') })),
-  setAuth: (userId, role, email, staffStatus, headExists) => {
+  setAuth: (userId, role, email, staffStatus, headExists, name = '', phone = '') => {
     // Decide the landing screen for a signed-in Google (staff) user.
     const approved = staffStatus === 'approved'
     let screen: Screen
@@ -457,8 +458,20 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     else screen = 'register' // unregistered staff (role 'student'/none)
     set({
       supabaseUserId: userId, role, staffStatus, headExists, authLoading: false,
-      googleEmail: email ?? '', screen, tab: 'home',
+      googleEmail: email ?? '', myName: name ?? '', myPhone: phone ?? '', screen, tab: 'home',
     })
+  },
+
+  saveStaffProfile: async (name, phone) => {
+    const id = get().supabaseUserId
+    if (!id) return
+    const trimmed = name.trim()
+    if (!trimmed) { get().notify('Name is required'); return }
+    if (phone.trim() && !/^\+?\d[\d\s-]{6,}$/.test(phone.trim())) { get().notify('Invalid phone number'); return }
+    const { error } = await supabase.from('profiles').update({ full_name: trimmed, phone: phone.trim() || null }).eq('id', id)
+    if (error) { get().notify('Could not save profile — check your connection'); return }
+    set({ myName: trimmed, myPhone: phone.trim() })
+    get().notify('Profile updated')
   },
 }))
 

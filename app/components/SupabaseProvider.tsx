@@ -20,11 +20,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
   async function handleAuth(userId: string, email: string) {
     try {
-      const { data: profile } = await supabase.from('profiles').select('role, staff_status').eq('id', userId).single()
+      const { data: profile } = await supabase.from('profiles').select('role, staff_status, full_name, phone').eq('id', userId).single()
       const role = (profile?.role as Role) ?? 'student'
       const staffStatus = (profile?.staff_status as StaffStatus) ?? 'none'
       const { data: headExists } = await supabase.rpc('head_exists')
-      setAuth(userId, role, email, staffStatus, !!headExists)
+      setAuth(userId, role, email, staffStatus, !!headExists, (profile?.full_name as string) ?? '', (profile?.phone as string) ?? '')
       // Only approved staff load the centre's full dataset. dataLoading gates the
       // UI so Home never flashes zeros before the first fetch completes.
       if ((role === 'admin' || role === 'teacher') && staffStatus === 'approved') {

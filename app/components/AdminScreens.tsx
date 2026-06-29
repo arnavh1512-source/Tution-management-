@@ -5,7 +5,7 @@ import { useDashboard, initials, av } from '../store'
 import { ScreenHeader, ChevronRight } from './Shell'
 
 export function AdminPanel() {
-  const { back, goFrom, exitAdmin, students, teachers, googleEmail, staffList, loadStaff } = useDashboard()
+  const { back, goFrom, exitAdmin, students, teachers, googleEmail, myName, staffList, loadStaff } = useDashboard()
 
   // Keep the pending-approvals badge fresh whenever the head opens the dashboard.
   useEffect(() => { loadStaff() }, [loadStaff])
@@ -33,7 +33,7 @@ export function AdminPanel() {
 
       <div className="inline-flex items-center gap-[7px] bg-[#e7f5ee] rounded-[20px] py-[7px] px-[13px] mt-1.5 mb-5">
         <span className="w-2 h-2 rounded-full bg-td-green" />
-        <span className="text-xs font-bold text-td-green">Head teacher · {googleEmail?.split('@')[0] ?? 'Admin'}</span>
+        <span className="text-xs font-bold text-td-green">Head teacher · {myName || googleEmail?.split('@')[0] || 'Admin'}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-[11px] mb-[22px]">

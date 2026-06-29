@@ -284,8 +284,9 @@ export function SubjectsScreen() {
 }
 
 export function MoreScreen() {
-  const { go, signOut, role } = useDashboard()
+  const { go, signOut, role, myName, googleEmail } = useDashboard()
   const isAdmin = role === 'admin'
+  const profileName = myName || googleEmail?.split('@')[0] || (isAdmin ? 'Head teacher' : 'Teacher')
   const allItems: { icon: string; label: string; tint: string; screen: Screen; headOnly?: boolean }[] = [
     { icon: '✅', label: 'Mark attendance', tint: '#e7f5ee', screen: 'attendance' },
     { icon: '📊', label: 'Enter results', tint: '#eaf1fc', screen: 'results' },
@@ -302,6 +303,16 @@ export function MoreScreen() {
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <div className="text-2xl font-extrabold text-td-dark mt-1.5 mb-[18px]">More tools</div>
+
+      <button onClick={() => go('staffProfile', 'more')} className="w-full text-left bg-white border border-td-border rounded-[20px] p-3.5 flex items-center gap-3.5 cursor-pointer mb-4">
+        <div className="w-[46px] h-[46px] rounded-[14px] shrink-0 flex items-center justify-center text-white font-bold text-[15px]" style={{ background: av(0) }}>{initials(profileName)}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-extrabold text-td-dark truncate">{profileName}</div>
+          <div className="text-xs text-td-muted mt-0.5 truncate">{googleEmail} · {isAdmin ? 'Head teacher' : 'Teacher'}</div>
+        </div>
+        <ChevronRight />
+      </button>
+
       <div className="bg-white border border-td-border rounded-[20px] overflow-hidden">
         {items.map(m => (
           <button key={m.label} onClick={() => go(m.screen, 'more')} className="w-full text-left border-none bg-transparent border-b border-[#f0f2f7] p-[15px] px-[17px] flex items-center gap-3.5 cursor-pointer last:border-b-0">
@@ -311,6 +322,49 @@ export function MoreScreen() {
           </button>
         ))}
       </div>
+
+      <button onClick={signOut} className="w-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-sm font-extrabold p-[15px] rounded-2xl cursor-pointer mt-4 flex items-center justify-center gap-[9px]">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8553c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+        Sign out
+      </button>
+    </div>
+  )
+}
+
+export function StaffProfileScreen() {
+  const { go, role, myName, myPhone, googleEmail, saveStaffProfile, signOut } = useDashboard()
+  const isAdmin = role === 'admin'
+  const [name, setName] = useState(myName)
+  const [phone, setPhone] = useState(myPhone)
+  const [busy, setBusy] = useState(false)
+  const displayName = name || googleEmail?.split('@')[0] || (isAdmin ? 'Head teacher' : 'Teacher')
+
+  const save = async () => { setBusy(true); await saveStaffProfile(name, phone); setBusy(false) }
+
+  return (
+    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
+      <ScreenHeader title="My Profile" onBack={() => go('more', 'more')} />
+
+      <div className="flex flex-col items-center text-center mb-6">
+        <div className="w-[76px] h-[76px] rounded-[24px] flex items-center justify-center text-white font-extrabold text-[26px] mb-3" style={{ background: av(0) }}>{initials(displayName)}</div>
+        <div className="text-[18px] font-extrabold text-td-dark">{displayName}</div>
+        <div className="text-[12.5px] text-td-muted mt-0.5">{googleEmail}</div>
+        <div className="inline-flex items-center gap-[6px] bg-[#e7f5ee] rounded-[20px] py-[5px] px-[11px] mt-2.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-td-green" />
+          <span className="text-[11px] font-bold text-td-green">{isAdmin ? 'Head teacher' : 'Teacher'}</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3.5 mb-[18px]">
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Phone</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        <div className="flex items-center gap-2.5 bg-[#f4f6fb] border border-[#e6eaf2] rounded-[14px] p-3">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span className="text-[12px] text-td-muted">Your email is managed by Google and can&apos;t be changed here.</span>
+        </div>
+      </div>
+
+      <PrimaryButton onClick={busy ? () => {} : save}>{busy ? 'Saving…' : 'Save changes'}</PrimaryButton>
 
       <button onClick={signOut} className="w-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-sm font-extrabold p-[15px] rounded-2xl cursor-pointer mt-4 flex items-center justify-center gap-[9px]">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8553c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
