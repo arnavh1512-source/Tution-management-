@@ -88,7 +88,7 @@ interface Actions {
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   addBranch: (name: string, address: string, isMain: boolean) => void
   addSubject: (name: string) => void
-  loadStudentByCode: (code: string) => Promise<boolean>
+  loadStudentByCode: (code: string, navigate?: boolean) => Promise<boolean>
   registerAsHead: () => Promise<void>
   registerAsTeacher: () => Promise<void>
   requestHead: () => Promise<void>
@@ -264,7 +264,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     }
 
     const now = new Date().toISOString()
-    const newNotifs = targets.map(s => ({
+    const newNotifs = targets.map(() => ({
       icon, tint: '#eaf1fc', title: `${type} Reminder`, detail: message, when: 'Just now', dbId: now,
     }))
     set((s) => ({ stuNotifications: [...newNotifs, ...s.stuNotifications] }))
@@ -355,19 +355,30 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     get().notify(`Subject "${name}" added`)
   },
 
-  loadStudentByCode: async (code) => {
+  loadStudentByCode: async (code, navigate = true) => {
     const trimmed = code.trim()
-    if (trimmed.length < 4) { get().notify('Enter your code'); return false }
+    if (trimmed.length < 4) { if (navigate) get().notify('Enter your code'); return false }
     const { data, error } = await supabase.rpc('get_student_snapshot', { p_code: trimmed })
-    if (error || !data) { get().notify('Invalid code — check with your teacher'); return false }
+    if (error || !data) { if (navigate) get().notify('Invalid code — check with your teacher'); return false }
     if (typeof window !== 'undefined') localStorage.setItem('student_code', trimmed)
-    set({ ...mapSnapshot(data), role: 'student', staffStatus: 'none', screen: 'stuHome', tab: 'stuHome' as Tab, authLoading: false })
+    const patch: Partial<State> = mapSnapshot(data)
+    // Only navigate on the initial load; a background (focus) refresh just
+    // updates the data and must not yank the student off their current screen.
+    if (navigate) {
+      Object.assign(patch, {
+        role: 'student', staffStatus: 'none', screen: 'stuHome', tab: 'stuHome' as Tab,
+        authLoading: false, stuRankSubject: Object.keys(patch.rankData ?? {})[0] ?? 'Mathematics',
+      })
+    }
+    set(patch)
     return true
   },
 
   registerAsHead: async () => {
     const { error } = await supabase.rpc('register_as_head')
-    if (error) { get().notify(error.message || 'Could not register as head'); return }
+    // Error here usually means another account already claimed head — reflect
+    // that so the UI drops the Head Teacher option.
+    if (error) { get().notify(error.message || 'Could not register as head'); set({ headExists: true }); return }
     get().notify('Welcome, head teacher!')
     if (typeof window !== 'undefined') window.location.reload()
   },
@@ -435,7 +446,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   },
 
   loadTeachers: (t) => set({ teachers: t }),
-  loadStudents: (s) => set({ students: s, attClass: s.length ? s[0].klass : '' }),
+  loadStudents: (s) => set((prev) => ({ students: s, attClass: prev.attClass || (s.length ? s[0].klass : '') })),
   setAuth: (userId, role, email, staffStatus, headExists) => {
     // Decide the landing screen for a signed-in Google (staff) user.
     const approved = staffStatus === 'approved'
