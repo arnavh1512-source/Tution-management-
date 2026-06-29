@@ -83,6 +83,15 @@ export function StuHomeScreen() {
         </button>
       </div>
 
+      <button onClick={() => go('stuTimetable', 'stuHome')} className="w-full text-left bg-white border border-td-border rounded-[18px] p-[15px] flex items-center gap-[13px] mb-5 cursor-pointer">
+        <div className="w-[42px] h-[42px] rounded-[13px] bg-[#eef0fc] flex items-center justify-center shrink-0 text-xl">🗓️</div>
+        <div className="flex-1">
+          <div className="text-sm font-extrabold text-td-dark">My Timetable</div>
+          <div className="text-xs text-td-muted mt-0.5">See your class schedule</div>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+
       {stuPendingFee && (
         <button onClick={() => go('stuFees', 'stuHome')} className="w-full text-left border-none cursor-pointer rounded-[18px] p-[15px] flex items-center gap-[13px] mb-5" style={{ background: 'linear-gradient(135deg,#e8553c,#ef7a64)' }}>
           <div className="w-[42px] h-[42px] rounded-[13px] bg-white/20 flex items-center justify-center shrink-0">
@@ -455,6 +464,55 @@ export function StuNotifScreen() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function StuTimetableScreen() {
+  const { go, timetableData } = useDashboard()
+  const dayNames: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday' }
+  const [day, setDay] = useState(['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()])
+  const periods = timetableData[day] || []
+
+  return (
+    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
+      <ScreenHeader title="My Timetable" onBack={() => go('stuHome', 'stuHome')} />
+
+      <div className="flex gap-2 overflow-x-auto mb-[18px] scrollbar-hide">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => {
+          const active = d === day
+          return (
+            <button key={d} onClick={() => setDay(d)} className="shrink-0 min-w-[48px] border rounded-[14px] py-[9px] px-3 cursor-pointer text-center" style={{ background: active ? '#2a6fdb' : '#fff', borderColor: active ? '#2a6fdb' : '#e6eaf2' }}>
+              <div className="text-[12px] font-bold" style={{ color: active ? '#fff' : '#3a4456' }}>{d}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="text-[13px] text-td-muted font-semibold mb-3.5">{dayNames[day]} · {periods.length} {periods.length === 1 ? 'class' : 'classes'}</div>
+
+      {periods.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-10">No classes scheduled for {dayNames[day]}</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {periods.map((p, i) => {
+            const free = p[2] === 'Free period'
+            return (
+              <div key={i} className="bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px]">
+                <div className="text-center shrink-0 w-[56px]">
+                  <div className="text-[12.5px] font-extrabold text-td-primary">{p[0]}</div>
+                  <div className="text-[10.5px] text-td-subtle font-semibold">{p[1]}</div>
+                </div>
+                <div className="w-px h-[34px] bg-[#eef1f7]" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13.5px] font-bold" style={{ color: free ? '#9aa4b6' : '#1a2332' }}>{p[2]}</div>
+                  {p[4] && <div className="text-xs text-td-muted mt-0.5">{p[4]}</div>}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

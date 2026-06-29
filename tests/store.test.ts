@@ -85,4 +85,18 @@ describe('mapSnapshot', () => {
     expect(empty.stuPendingFee).toBeNull()
     expect(empty.students?.[0].attendance).toBe(0)
   })
+
+  it('groups the class timetable by day', () => {
+    const r = mapSnapshot({
+      student: { dbId: 'd', code: 'c', klass: 'Class 10-B' },
+      timetable: [
+        { day: 'Mon', start: '09:00', end: '10:00', subject: 'Mathematics', room: 'R1' },
+        { day: 'Mon', start: '10:00', end: '11:00', subject: 'Physics', room: 'R2' },
+        { day: 'Tue', start: '09:00', end: '10:00', subject: 'English', room: 'R1' },
+      ],
+    })
+    expect(r.timetableData?.Mon?.length).toBe(2)
+    expect(r.timetableData?.Tue?.length).toBe(1)
+    expect(r.timetableData?.Mon?.[0]?.[2]).toBe('Mathematics')
+  })
 })

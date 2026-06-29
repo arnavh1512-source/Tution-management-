@@ -681,7 +681,14 @@ begin
         ) per_student
         group by subject
       ) ranked
-    ), '{}'::json)
+    ), '{}'::json),
+    'timetable', coalesce((
+      select json_agg(json_build_object(
+        'day', tt.day, 'start', tt.start_time, 'end', tt.end_time,
+        'subject', tt.subject, 'room', tt.room
+      ) order by tt.start_time)
+      from public.timetable tt where tt.class = v_student.class
+    ), '[]'::json)
   ) into v_result;
 
   return v_result;

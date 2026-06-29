@@ -10,7 +10,7 @@ export type Screen =
   | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'more' | 'subscription'
   | 'admin' | 'staffApprovals' | 'staffProfile' | 'register' | 'pending' | 'denied'
   | 'stuHome' | 'stuAttendance' | 'stuResults' | 'stuRanking' | 'stuTeachers'
-  | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile'
+  | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile' | 'stuTimetable'
 
 export type Tab = 'home' | 'timetable' | 'students' | 'teachers' | 'more'
   | 'stuHome' | 'stuResults' | 'stuRanking' | 'stuTeachers' | 'stuProfile'
@@ -594,10 +594,18 @@ export function mapSnapshot(snap: any): Partial<State> {
 
   const rankData = (snap.rankings ?? {}) as Record<string, [string, number][]>
 
+  // Class timetable (head sets it per class; the student sees their class's).
+  const timetableData: Record<string, string[][]> = {}
+  for (const t of (snap.timetable ?? []) as any[]) {
+    const day = t.day as string
+    if (!timetableData[day]) timetableData[day] = []
+    timetableData[day].push([t.start ?? '', t.end ?? '', t.subject ?? '', student.klass ?? '', t.room ?? ''])
+  }
+
   return {
     students: [student], currentStudentDbId: student.dbId ?? null,
     stuAttendanceLog, stuResults, stuFeeHistory, stuPendingFee,
     stuNotifications, stuReminders: stuNotifications.slice(0, 3),
-    teachers, rankData,
+    teachers, rankData, timetableData,
   }
 }
