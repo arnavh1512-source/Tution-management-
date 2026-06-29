@@ -109,14 +109,14 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 export const useDashboard = create<State & Actions>((set, get) => ({
   screen: 'home', tab: 'home', role: null, origin: null,
-  attClass: '', att: {}, rankSubject: 'Mathematics', ttDay: ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
+  attClass: '', att: {}, rankSubject: '', ttDay: ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
   toast: '', editIndex: 0,
   staffStatus: 'none', headExists: false, staffList: [],
   googleEmail: '', myName: '', myPhone: '', reminderType: 'Test', plan: 'Monthly',
-  newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '', branch: '' },
+  newTeacher: { name: '', subject: '', qualification: '', experience: '', branch: '' },
   newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' },
   teachers: [], students: [],
-  stuTeacherIndex: 0, stuRankSubject: 'Mathematics',
+  stuTeacherIndex: 0, stuRankSubject: '',
   stuEdit: { name: '', parentNumber: '', address: '' },
   supabaseUserId: null, authLoading: true, dataLoading: false,
 
@@ -177,7 +177,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       .select().single().then(({ data }) => {
         if (data) set((s) => ({ teachers: s.teachers.map(x => x.name === t.name && !x.dbId ? { ...x, dbId: data.id } : x) }))
       })
-    set({ teachers: [t, ...teachers], newTeacher: { name: '', subject: 'Mathematics', qualification: '', experience: '', branch: '' } })
+    set({ teachers: [t, ...teachers], newTeacher: { name: '', subject: '', qualification: '', experience: '', branch: '' } })
     get().notify('Teacher added to staff'); get().back()
   },
 
@@ -368,7 +368,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (navigate) {
       Object.assign(patch, {
         role: 'student', staffStatus: 'none', screen: 'stuHome', tab: 'stuHome' as Tab,
-        authLoading: false, stuRankSubject: Object.keys(patch.rankData ?? {})[0] ?? 'Mathematics',
+        authLoading: false, stuRankSubject: Object.keys(patch.rankData ?? {})[0] ?? '',
       })
     }
     set(patch)
@@ -502,7 +502,7 @@ export const PLAN_META: Record<string, { name: string; price: string; permonth: 
 export const PLAN_PERKS = ['Unlimited students & classes', 'Attendance, results & assignments', 'Reminders to parents & students', 'Multi-branch management']
 
 export const REMINDER_TEMPLATES: Record<string, string> = {
-  Test: 'Reminder: Mathematics Unit Test is scheduled for tomorrow. Please ensure your child revises the relevant chapters.',
+  Test: 'Reminder: a unit test is scheduled for tomorrow. Please ensure your child revises the relevant chapters.',
   Absence: 'Your child was marked absent today. Kindly inform us of the reason or share any concerns.',
   Fee: 'Gentle reminder: the tuition fee is due. Please clear it at the earliest.',
   Homework: 'Reminder: Please submit the pending homework before the next class.',

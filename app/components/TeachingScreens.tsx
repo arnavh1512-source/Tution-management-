@@ -23,11 +23,10 @@ export function TimetableScreen() {
   })()
   const dayNames: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday' }
   const periods = timetableData[ttDay] || []
-  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']
+  const subjectNames = subjects.map(s => s.name)
 
   const handleAdd = () => {
-    if (!subject && !subjectNames[0]) { notify('Select a subject'); return }
-    addTimetableEntry(ttDay, startTime, endTime, subject || subjectNames[0], klass, room)
+    addTimetableEntry(ttDay, startTime, endTime, subject || subjectNames[0] || 'Free period', klass, room)
     setStartTime('09:00'); setEndTime('10:00'); setSubject(''); setRoom(''); setShowForm(false)
   }
 
@@ -77,7 +76,7 @@ export function TimetableScreen() {
             </div>
           </div>
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Subject</label>
-            <select value={subject || subjectNames[0]} onChange={e => setSubject(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+            <select value={subject || subjectNames[0] || 'Free period'} onChange={e => setSubject(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
               {subjectNames.map(s => <option key={s}>{s}</option>)}
               <option>Free period</option>
             </select>
@@ -199,18 +198,20 @@ export function AttendanceScreen() {
 export function ResultsScreen() {
   const { students, subjects, back, notify } = useDashboard()
   const [klass, setKlass] = useState('Class 10-B')
-  const [subject, setSubject] = useState('Mathematics')
+  const [subject, setSubject] = useState('')
   const [testName, setTestName] = useState('Unit Test')
   const [maxMarks, setMaxMarks] = useState('50')
   const [marks, setMarks] = useState<Record<number, string>>({})
   const classes = [...new Set(students.map(s => s.klass))].filter(Boolean)
   const roster = students.filter(s => s.klass === klass).map(s => s.name)
-  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English', 'Biology']
+  const subjectNames = subjects.map(s => s.name)
+  const selSubject = subject || subjectNames[0] || ''
 
   const handlePublish = async () => {
     if (!testName.trim()) { notify('Enter test name'); return }
+    if (!selSubject) { notify('Add a subject first (More → Subjects)'); return }
     const { supabase } = await import('../lib/supabase')
-    const subjectId = useDashboard.getState().subjects.find(s => s.name === subject)?.dbId
+    const subjectId = useDashboard.getState().subjects.find(s => s.name === selSubject)?.dbId
     const { data: test, error } = await supabase.from('tests').insert({
       name: testName, subject_id: subjectId ?? null, class: klass,
       max_marks: Number(maxMarks) || 50, date: new Date().toISOString().split('T')[0],
@@ -237,8 +238,8 @@ export function ResultsScreen() {
           </select>
         </div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Subject</label>
-          <select value={subject} onChange={e => setSubject(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
-            {subjectNames.map(s => <option key={s}>{s}</option>)}
+          <select value={selSubject} onChange={e => setSubject(e.target.value)} disabled={subjectNames.length === 0} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none disabled:opacity-60">
+            {subjectNames.length ? subjectNames.map(s => <option key={s}>{s}</option>) : <option value="">Add subjects first</option>}
           </select>
         </div>
       </div>
@@ -270,11 +271,12 @@ export function ResultsScreen() {
 export function AssignmentsScreen() {
   const { back, assignmentsList, saveAssignment, subjects } = useDashboard()
   const [title, setTitle] = useState('')
-  const [subject, setSubject] = useState('Mathematics')
+  const [subject, setSubject] = useState('')
   const [klass, setKlass] = useState('Class 10-B')
   const [dueDate, setDueDate] = useState('')
   const [instructions, setInstructions] = useState('')
-  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry']
+  const subjectNames = subjects.map(s => s.name)
+  const selSubject = subject || subjectNames[0] || ''
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -284,8 +286,8 @@ export function AssignmentsScreen() {
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Title</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Algebra worksheet 5" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div className="grid grid-cols-2 gap-[11px]">
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Subject</label>
-            <select value={subject} onChange={e => setSubject(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
-              {subjectNames.map(s => <option key={s}>{s}</option>)}
+            <select value={selSubject} onChange={e => setSubject(e.target.value)} disabled={subjectNames.length === 0} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none disabled:opacity-60">
+              {subjectNames.length ? subjectNames.map(s => <option key={s}>{s}</option>) : <option value="">Add subjects first</option>}
             </select>
           </div>
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label>
@@ -296,7 +298,7 @@ export function AssignmentsScreen() {
         </div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Due date</label><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Instructions</label><textarea rows={3} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Describe the task..." className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none resize-none focus:border-td-primary" /></div>
-        <PrimaryButton onClick={() => { saveAssignment(title, subject, klass, dueDate, instructions); setTitle(''); setInstructions('') }}>Create &amp; notify class</PrimaryButton>
+        <PrimaryButton onClick={() => { saveAssignment(title, selSubject, klass, dueDate, instructions); setTitle(''); setInstructions('') }}>Create &amp; notify class</PrimaryButton>
       </div>
 
       <div className="text-[15px] font-extrabold text-td-dark mb-3">Active assignments</div>

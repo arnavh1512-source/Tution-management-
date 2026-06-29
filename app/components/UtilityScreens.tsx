@@ -144,13 +144,17 @@ export function MeetingsScreen() {
 }
 
 export function RankingsScreen() {
-  const { rankSubject, rankData, subjects, back, set } = useDashboard()
-  const subjectNames = subjects.length ? subjects.map(s => s.name) : ['Mathematics', 'Physics', 'Chemistry', 'English']
+  const { rankSubject, rankData, subjects, back, set, go } = useDashboard()
+  const subjectNames = subjects.map(s => s.name)
   const rows = (rankData[rankSubject] || []).map((r, i) => ({ rank: i + 1, name: r[0], score: r[1] }))
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Rankings" onBack={back} />
+
+      {subjectNames.length === 0 && (
+        <button onClick={() => go('subjects', 'more')} className="w-full text-left bg-[#eaf1fc] border border-[#dbe6fa] rounded-[14px] p-3.5 cursor-pointer text-[12.5px] text-td-primary font-semibold">Add subjects first (More → Subjects) so rankings can be grouped by subject.</button>
+      )}
 
       <div className="flex gap-[9px] overflow-x-auto mb-[18px] scrollbar-hide">
         {subjectNames.map(name => {
@@ -162,7 +166,7 @@ export function RankingsScreen() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="text-center text-td-muted text-sm py-8">No results data for {rankSubject}</div>
+        <div className="text-center text-td-muted text-sm py-8">{rankSubject ? `No results entered for ${rankSubject} yet` : 'Enter results to generate rankings'}</div>
       ) : (
         <div className="flex flex-col gap-[9px] mb-5">
           {rows.map((r, i) => (

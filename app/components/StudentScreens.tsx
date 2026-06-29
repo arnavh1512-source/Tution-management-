@@ -265,19 +265,21 @@ export function StuRankingScreen() {
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <div className="text-2xl font-extrabold text-td-dark mt-1.5 mb-1">Ranking</div>
-      <div className="text-[12.5px] text-td-muted mb-[18px]">{me?.klass ?? ''} · {stuRankSubject}</div>
+      <div className="text-[12.5px] text-td-muted mb-[18px]">{me?.klass ?? ''}{stuRankSubject ? ` · ${stuRankSubject}` : ''}</div>
 
-      <div className="flex gap-[9px] overflow-x-auto mb-[22px] scrollbar-hide">
-        {subjectNames.map(name => {
-          const active = name === stuRankSubject
-          return (
-            <button key={name} onClick={() => set({ stuRankSubject: name })} className="shrink-0 text-[13px] font-bold py-[9px] px-4 rounded-[20px] cursor-pointer border" style={{ background: active ? '#2a6fdb' : '#fff', color: active ? '#fff' : '#3a4456', borderColor: active ? '#2a6fdb' : '#e6eaf2' }}>{name}</button>
-          )
-        })}
-      </div>
+      {subjectNames.length > 0 && (
+        <div className="flex gap-[9px] overflow-x-auto mb-[22px] scrollbar-hide">
+          {subjectNames.map(name => {
+            const active = name === stuRankSubject
+            return (
+              <button key={name} onClick={() => set({ stuRankSubject: name })} className="shrink-0 text-[13px] font-bold py-[9px] px-4 rounded-[20px] cursor-pointer border" style={{ background: active ? '#2a6fdb' : '#fff', color: active ? '#fff' : '#3a4456', borderColor: active ? '#2a6fdb' : '#e6eaf2' }}>{name}</button>
+            )
+          })}
+        </div>
+      )}
 
       {rows.length === 0 ? (
-        <div className="text-center text-td-muted text-sm py-8">No ranking data for {stuRankSubject}</div>
+        <div className="text-center text-td-muted text-sm py-10 leading-relaxed">No rankings published yet.<br />They&apos;ll appear once your teacher enters results.</div>
       ) : (
         <>
           {top3.length >= 3 && (
