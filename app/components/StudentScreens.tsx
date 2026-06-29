@@ -101,14 +101,15 @@ export function StuHomeScreen() {
           <div className="text-base font-extrabold text-td-dark mb-[13px]">Reminders</div>
           <div className="flex flex-col gap-2.5 mb-[22px]">
             {stuReminders.map(r => (
-              <div key={r.title + r.when} className="bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px]">
+              <button key={r.title + r.when} onClick={() => go('stuNotif', 'stuHome')} className="w-full text-left bg-white border border-td-border rounded-[18px] p-3.5 flex items-center gap-[13px] cursor-pointer">
                 <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-lg" style={{ background: r.tint }}>{r.icon}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13.5px] font-bold text-td-dark">{r.title}</div>
                   <div className="text-xs text-td-muted mt-0.5 truncate">{r.detail}</div>
                 </div>
                 <span className="text-[11px] text-td-subtle font-semibold shrink-0">{r.when}</span>
-              </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round" className="shrink-0"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
             ))}
           </div>
         </>

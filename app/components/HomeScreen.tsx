@@ -15,7 +15,6 @@ export function HomeScreen() {
     { icon: '📊', label: 'Results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignment', tint: '#fcf3e3', screen: 'assign' },
     { icon: '🔔', label: 'Reminder', tint: '#fdecea', screen: 'reminder' },
-    { icon: '🗓️', label: 'Timetable', tint: '#eef0fc', screen: 'timetable', tab: 'timetable' },
     { icon: '💳', label: 'Fees', tint: '#e7f5ee', screen: 'fees', headOnly: true },
     { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings', headOnly: true },
     { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
@@ -39,11 +38,18 @@ export function HomeScreen() {
         </div>
       </div>
 
-      <button onClick={() => go('branches')} className="inline-flex items-center gap-[7px] bg-white border border-td-border rounded-[20px] py-[7px] px-[13px] mb-[18px] cursor-pointer">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-        <span className="text-[12.5px] font-semibold text-td-text">{mainBranch?.name ?? 'No branch'}</span>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.4" strokeLinecap="round"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
+      {isAdmin ? (
+        <button onClick={() => go('branches')} className="inline-flex items-center gap-[7px] bg-white border border-td-border rounded-[20px] py-[7px] px-[13px] mb-[18px] cursor-pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          <span className="text-[12.5px] font-semibold text-td-text">{mainBranch?.name ?? 'No branch'}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.4" strokeLinecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      ) : mainBranch ? (
+        <div className="inline-flex items-center gap-[7px] bg-white border border-td-border rounded-[20px] py-[7px] px-[13px] mb-[18px]">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          <span className="text-[12.5px] font-semibold text-td-text">{mainBranch.name}</span>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-2.5 mb-3.5">
         <div className="rounded-[18px] p-3.5 text-white" style={{ background: 'linear-gradient(135deg,#2a6fdb,#3f82ec)' }}>
