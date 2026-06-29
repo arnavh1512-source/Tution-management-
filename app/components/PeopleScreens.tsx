@@ -42,7 +42,7 @@ export function StudentsScreen() {
                   <div className="text-sm font-extrabold text-td-dark">{s.name}</div>
                   <div className="text-xs text-td-muted mt-0.5">{s.klass} · {s.attendance}% attendance</div>
                 </div>
-                <span className="text-[10.5px] font-bold py-[5px] px-[9px] rounded-[20px]" style={{ color: f.c, background: f.b }}>{s.feeStatus}</span>
+                {isAdmin && <span className="text-[10.5px] font-bold py-[5px] px-[9px] rounded-[20px]" style={{ color: f.c, background: f.b }}>{s.feeStatus}</span>}
                 {isAdmin && <ChevronRight />}
               </button>
             )
