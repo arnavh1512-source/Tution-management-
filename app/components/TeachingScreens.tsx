@@ -5,7 +5,8 @@ import { useDashboard, REMINDER_TEMPLATES, initials, av } from '../store'
 import { ScreenHeader, PrimaryButton } from './Shell'
 
 export function TimetableScreen() {
-  const { ttDay, timetableData, back, set, notify, addTimetableEntry, subjects } = useDashboard()
+  const { ttDay, timetableData, back, set, addTimetableEntry, subjects, role } = useDashboard()
+  const isAdmin = role === 'admin'
   const [showForm, setShowForm] = useState(false)
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
@@ -46,11 +47,11 @@ export function TimetableScreen() {
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <ScreenHeader title="Timetable" onBack={back} right={
+      <ScreenHeader title="Timetable" onBack={back} right={isAdmin ? (
         <button onClick={() => setShowForm(f => !f)} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
           <span className="text-base leading-none">{showForm ? '×' : '+'}</span> {showForm ? 'Close' : 'Add'}
         </button>
-      } />
+      ) : undefined} />
 
       <div className="flex gap-2 overflow-x-auto mb-[18px] scrollbar-hide">
         {days.map(d => {
@@ -64,7 +65,7 @@ export function TimetableScreen() {
         })}
       </div>
 
-      {showForm && (
+      {isAdmin && showForm && (
         <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[18px] flex flex-col gap-3.5">
           <div className="text-sm font-extrabold text-td-dark">Add period — {dayNames[ttDay]}</div>
           <div className="grid grid-cols-2 gap-[11px]">
