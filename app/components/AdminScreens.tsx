@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useDashboard, initials, av } from '../store'
 import { ScreenHeader, ChevronRight } from './Shell'
+import { supabase } from '../lib/supabase'
 
 export function AdminPanel() {
   const { back, goFrom, exitAdmin, students, teachers, googleEmail, myName, staffList, loadStaff } = useDashboard()
@@ -71,7 +72,16 @@ export function AdminPanel() {
 export function StaffApprovalsScreen() {
   const { back, staffList, loadStaff, approveTeacher, rejectTeacher, grantHead, removeStaff, supabaseUserId } = useDashboard()
 
-  useEffect(() => { loadStaff() }, [loadStaff])
+  // Reload on open, and live-refresh whenever any profile changes (e.g. a new
+  // teacher registers) so pending requests appear without leaving the screen.
+  useEffect(() => {
+    loadStaff()
+    const channel = supabase
+      .channel('staff-approvals-watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadStaff())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [loadStaff])
 
   const pending = staffList.filter(s => s.status === 'pending')
   const active = staffList.filter(s => s.status === 'approved')

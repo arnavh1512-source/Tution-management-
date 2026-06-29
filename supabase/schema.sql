@@ -404,13 +404,10 @@ create index idx_notifications_student on public.notifications(student_id);
 create index idx_timetable_day on public.timetable(day);
 
 -- ============================================
--- SEED DATA (matches the demo mock data)
+-- SEED DATA
 -- ============================================
-insert into public.branches (id, name, address, is_main) values
-  ('b0000000-0000-0000-0000-000000000001', 'Noida Central Branch', 'Sector 12, Noida, UP', true),
-  ('b0000000-0000-0000-0000-000000000002', 'Sector 18 Branch', 'Atta Market, Noida, UP', false),
-  ('b0000000-0000-0000-0000-000000000003', 'Indirapuram Branch', 'Shakti Khand, Ghaziabad', false)
-on conflict (id) do nothing;
+-- No seed data: a real centre starts empty and adds its own branches,
+-- subjects, staff and students. (Demo branches were removed for production.)
 
 -- ============================================================================
 -- PRODUCTION MIGRATION — safe to run on an existing database (idempotent)

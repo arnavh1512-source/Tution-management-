@@ -87,6 +87,7 @@ interface Actions {
   toggleFeeStatus: (idx: number) => void
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   addBranch: (name: string, address: string, isMain: boolean) => void
+  deleteBranch: (dbId: string) => void
   addSubject: (name: string) => void
   loadStudentByCode: (code: string, navigate?: boolean) => Promise<boolean>
   registerAsHead: () => Promise<void>
@@ -342,6 +343,12 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       })
     set({ branchesList: [branch, ...branchesList] })
     get().notify('Branch added')
+  },
+
+  deleteBranch: (dbId) => {
+    set((s) => ({ branchesList: s.branchesList.filter(b => b.dbId !== dbId) }))
+    supabase.from('branches').delete().eq('id', dbId).then(dbErr('delete branch', get().notify))
+    get().notify('Branch removed')
   },
 
   addSubject: (name) => {

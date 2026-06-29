@@ -34,8 +34,10 @@ function StatusBar() {
 }
 
 function BottomTabBar() {
-  const { role, tab, go, currentStudentDbId } = useDashboard()
+  const { role, tab, go, currentStudentDbId, staffStatus, supabaseUserId } = useDashboard()
   if (!role) return null
+  // Unapproved Google staff (register/pending/denied) get no navigation.
+  if (supabaseUserId && staffStatus !== 'approved') return null
 
   if (role === 'student') {
     if (!currentStudentDbId) return null

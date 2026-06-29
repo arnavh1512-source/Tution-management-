@@ -67,9 +67,19 @@ export default function Page() {
 }
 
 function ScreenRouter() {
-  const { screen, role, dataLoading } = useDashboard()
+  const { screen, role, dataLoading, staffStatus, supabaseUserId } = useDashboard()
 
   if (!role) return <LoginScreen />
+
+  // A signed-in Google user who is not an approved staff member is locked to
+  // their setup/status screen — no access to any feature screen, regardless of
+  // the stored `screen` (prevents tab navigation into the app before approval).
+  if (supabaseUserId && staffStatus !== 'approved') {
+    if (staffStatus === 'pending') return <PendingScreen />
+    if (staffStatus === 'rejected') return <DeniedScreen />
+    return <RegisterScreen />
+  }
+
   if (dataLoading && (role === 'admin' || role === 'teacher')) return <ScreenLoading />
 
   switch (screen) {

@@ -188,7 +188,7 @@ export function RankingsScreen() {
 }
 
 export function BranchesScreen() {
-  const { back, branchesList, addBranch } = useDashboard()
+  const { back, branchesList, addBranch, deleteBranch } = useDashboard()
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
@@ -236,9 +236,12 @@ export function BranchesScreen() {
                 {b.main && <span className="text-[10px] font-bold text-td-primary bg-[#eaf1fc] py-1 px-[9px] rounded-[20px]">Main</span>}
               </div>
               <div className="text-[12.5px] text-td-muted mb-3">{b.address}</div>
-              <div className="flex gap-[18px]">
-                <div><div className="text-base font-extrabold text-td-dark">{b.students}</div><div className="text-[11px] text-td-subtle font-semibold">Students</div></div>
-                <div><div className="text-base font-extrabold text-td-dark">{b.staff}</div><div className="text-[11px] text-td-subtle font-semibold">Staff</div></div>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-[18px]">
+                  <div><div className="text-base font-extrabold text-td-dark">{b.students}</div><div className="text-[11px] text-td-subtle font-semibold">Students</div></div>
+                  <div><div className="text-base font-extrabold text-td-dark">{b.staff}</div><div className="text-[11px] text-td-subtle font-semibold">Staff</div></div>
+                </div>
+                {b.dbId && <button onClick={() => deleteBranch(b.dbId!)} className="border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-[12px] font-bold py-2 px-3.5 rounded-[12px] cursor-pointer">Remove</button>}
               </div>
             </div>
           ))}
