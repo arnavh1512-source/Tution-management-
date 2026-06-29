@@ -15,6 +15,7 @@ export function HomeScreen() {
     { icon: '📊', label: 'Results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignment', tint: '#fcf3e3', screen: 'assign' },
     { icon: '🔔', label: 'Reminder', tint: '#fdecea', screen: 'reminder' },
+    { icon: '🗓️', label: 'Timetable', tint: '#eef0fc', screen: 'timetable', tab: 'timetable', headOnly: true },
     { icon: '💳', label: 'Fees', tint: '#e7f5ee', screen: 'fees', headOnly: true },
     { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings', headOnly: true },
     { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
