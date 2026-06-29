@@ -715,6 +715,56 @@ end; $$;
 revoke all on function public.update_student_self(text, text, text, text) from public;
 grant execute on function public.update_student_self(text, text, text, text) to anon, authenticated;
 
+-- ---- Weekly branch report (head only) -------------------------------------
+-- Per-branch summary for the last 7 days: roll/new students, staff, attendance
+-- rate, fees collected this week, and outstanding fees. Centre-wide totals too.
+create or replace function public.weekly_branch_report()
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_result json;
+  v_since timestamptz := now() - interval '7 days';
+  v_date_since date := current_date - 7;
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+
+  select json_build_object(
+    'generated_at', now(),
+    'branches', coalesce((
+      select json_agg(json_build_object(
+        'name', b.name,
+        'students', (select count(*) from public.students s where s.branch_id = b.id),
+        'new_students', (select count(*) from public.students s where s.branch_id = b.id and s.created_at >= v_since),
+        'staff', (select count(*) from public.teachers t where t.branch_id = b.id),
+        'att_pct', (
+          select coalesce(round(count(*) filter (where a.status = 'Present')::numeric / nullif(count(*), 0) * 100), 0)::int
+          from public.attendance a join public.students s on s.id = a.student_id
+          where s.branch_id = b.id and a.date >= v_date_since
+        ),
+        'fees_collected', (
+          select coalesce(sum(f.amount), 0)::bigint
+          from public.fees f join public.students s on s.id = f.student_id
+          where s.branch_id = b.id and f.status = 'Paid' and f.paid_date >= v_date_since
+        ),
+        'fees_pending', (
+          select coalesce(sum(f.amount), 0)::bigint
+          from public.fees f join public.students s on s.id = f.student_id
+          where s.branch_id = b.id and f.status <> 'Paid'
+        )
+      ) order by b.is_main desc, b.name)
+      from public.branches b
+    ), '[]'::json),
+    'unassigned_students', (select count(*) from public.students where branch_id is null),
+    'tests_this_week', (select count(*) from public.tests where date >= v_date_since)
+  ) into v_result;
+
+  return v_result;
+end; $$;
+
+revoke all on function public.weekly_branch_report() from public, anon;
+grant execute on function public.weekly_branch_report() to authenticated;
+
 -- ---- Realtime: let a pending teacher auto-advance when approved ------------
 -- Adds profiles to the realtime publication (idempotent). RLS still applies,
 -- so a teacher only receives changes to their own row.

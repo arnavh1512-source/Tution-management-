@@ -21,6 +21,30 @@ export function studentCodeMessage(name: string, code: string): string {
   ].join('\n')
 }
 
+import type { WeeklyReport } from '../store'
+
+const inr = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
+
+// Formats the weekly branch report as a WhatsApp-friendly message (*bold* via
+// asterisks, • bullets). Sent by the head to themselves or a co-owner.
+export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second School'): string {
+  const date = new Date(r.generated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const lines: string[] = [`*${centreName} — Weekly Report*`, `As of ${date}`, '']
+  if (r.branches.length === 0) lines.push('No branches configured yet.')
+  for (const b of r.branches) {
+    lines.push(`*${b.name}*`)
+    lines.push(`• Students: ${b.students}${b.new_students ? ` (+${b.new_students} new this week)` : ''}`)
+    lines.push(`• Staff: ${b.staff}`)
+    lines.push(`• Attendance (7d): ${b.att_pct}%`)
+    lines.push(`• Fees collected (7d): ${inr(b.fees_collected)}`)
+    lines.push(`• Fees pending: ${inr(b.fees_pending)}`)
+    lines.push('')
+  }
+  if (r.unassigned_students) lines.push(`Unassigned students: ${r.unassigned_students}`)
+  lines.push(`Tests conducted this week: ${r.tests_this_week}`)
+  return lines.join('\n')
+}
+
 // Build a wa.me deep link. Strips formatting; assumes India (+91) for bare
 // 10-digit numbers. An empty/short number yields a link that opens WhatsApp's
 // contact picker so the teacher can still choose a recipient.

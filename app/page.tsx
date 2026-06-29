@@ -21,6 +21,7 @@ const dyn = (importFn: () => Promise<Record<string, any>>, name: string) =>
 
 const AdminPanel = dyn(() => import('./components/AdminScreens'), 'AdminPanel')
 const StaffApprovalsScreen = dyn(() => import('./components/AdminScreens'), 'StaffApprovalsScreen')
+const ReportsScreen = dyn(() => import('./components/AdminScreens'), 'ReportsScreen')
 
 const TimetableScreen = dyn(() => import('./components/TeachingScreens'), 'TimetableScreen')
 const AttendanceScreen = dyn(() => import('./components/TeachingScreens'), 'AttendanceScreen')
@@ -105,6 +106,7 @@ function ScreenRouter() {
     case 'subscription': return <SubscriptionScreen />
     case 'admin': return <AdminPanel />
     case 'staffApprovals': return <StaffApprovalsScreen />
+    case 'reports': return <ReportsScreen />
     case 'register': return <RegisterScreen />
     case 'pending': return <PendingScreen />
     case 'denied': return <DeniedScreen />

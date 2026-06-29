@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useDashboard, initials, av } from '../store'
 import { ScreenHeader, ChevronRight } from './Shell'
 import { supabase } from '../lib/supabase'
+import { whatsappShareUrl, weeklyReportMessage } from '../lib/share'
 
 export function AdminPanel() {
   const { back, goFrom, exitAdmin, students, teachers, googleEmail, myName, staffList, loadStaff } = useDashboard()
@@ -13,6 +14,7 @@ export function AdminPanel() {
   const pendingCount = staffList.filter(s => s.status === 'pending').length
 
   const items = [
+    { icon: '📈', label: 'Weekly report', sub: 'Per-branch summary · share on WhatsApp', tint: '#e7f5ee', go: () => goFrom('reports', 'home', 'admin') },
     { icon: '🛡️', label: 'Staff access & approvals', sub: 'Approve teachers · grant head access', tint: '#eef0fc', badge: pendingCount, go: () => goFrom('staffApprovals', 'teachers', 'admin') },
     { icon: '👥', label: 'Teacher profiles', sub: 'Records shown to students', tint: '#eaf1fc', go: () => goFrom('teachers', 'teachers', 'admin') },
     { icon: '🎓', label: 'Manage students', sub: 'Enrol & edit student records', tint: '#e7f5ee', go: () => goFrom('students', 'students', 'admin') },
@@ -145,6 +147,63 @@ export function StaffApprovalsScreen() {
             )
           })}
         </div>
+      )}
+    </div>
+  )
+}
+
+export function ReportsScreen() {
+  const { back, weeklyReport: r, loadWeeklyReport, myPhone } = useDashboard()
+  useEffect(() => { loadWeeklyReport() }, [loadWeeklyReport])
+  const inr = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
+
+  return (
+    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
+      <ScreenHeader title="Weekly Report" onBack={back} />
+
+      {!r ? (
+        <div className="text-center text-td-muted text-sm py-12">Generating report…</div>
+      ) : (
+        <>
+          <div className="text-[12.5px] text-td-muted mb-4">Last 7 days · as of {new Date(r.generated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+
+          {r.branches.length === 0 ? (
+            <div className="text-center text-td-muted text-sm py-8 bg-white border border-td-border rounded-[16px] mb-4">No branches configured yet — add branches and assign students to see per-branch numbers.</div>
+          ) : (
+            <div className="flex flex-col gap-3 mb-4">
+              {r.branches.map(b => (
+                <div key={b.name} className="bg-white border border-td-border rounded-[18px] p-4">
+                  <div className="text-[15px] font-extrabold text-td-dark mb-3">{b.name}</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Students', value: `${b.students}${b.new_students ? ` (+${b.new_students})` : ''}` },
+                      { label: 'Staff', value: String(b.staff) },
+                      { label: 'Attendance', value: `${b.att_pct}%` },
+                      { label: 'Fees collected', value: inr(b.fees_collected) },
+                      { label: 'Fees pending', value: inr(b.fees_pending) },
+                    ].map(s => (
+                      <div key={s.label}>
+                        <div className="text-[17px] font-extrabold text-td-dark leading-none">{s.value}</div>
+                        <div className="text-[11px] text-td-muted mt-1 font-semibold">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="bg-[#f4f6fb] border border-[#e6eaf2] rounded-[14px] p-3.5 text-[12.5px] text-td-muted mb-4">
+            {r.unassigned_students > 0 && <div>Unassigned students: <span className="font-bold text-td-text">{r.unassigned_students}</span></div>}
+            <div>Tests conducted this week: <span className="font-bold text-td-text">{r.tests_this_week}</span></div>
+          </div>
+
+          <button onClick={() => window.open(whatsappShareUrl(myPhone, weeklyReportMessage(r)), '_blank')} className="w-full border-none bg-[#25D366] text-white text-[14px] font-extrabold py-[14px] rounded-[14px] cursor-pointer flex items-center justify-center gap-2">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            Send to WhatsApp
+          </button>
+          <div className="text-[11.5px] text-td-subtle text-center mt-3 leading-relaxed">Opens WhatsApp with the report ready to send to yourself or a co-owner.</div>
+        </>
       )}
     </div>
   )

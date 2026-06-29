@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { studentCodeMessage, whatsappShareUrl, appOrigin } from '../app/lib/share'
+import { studentCodeMessage, whatsappShareUrl, appOrigin, weeklyReportMessage } from '../app/lib/share'
 
 describe('appOrigin', () => {
   it('falls back to the production URL when there is no window (SSR)', () => {
@@ -39,5 +39,37 @@ describe('whatsappShareUrl', () => {
 
   it('yields the contact-picker form when the number is empty', () => {
     expect(whatsappShareUrl('', 'hi')).toMatch(/^https:\/\/wa\.me\/\?text=/)
+  })
+})
+
+describe('weeklyReportMessage', () => {
+  const report = {
+    generated_at: '2026-06-30T00:00:00Z',
+    branches: [
+      { name: 'Noida Central', students: 12, new_students: 2, staff: 3, att_pct: 88, fees_collected: 50000, fees_pending: 15000 },
+      { name: 'Sector 18', students: 5, new_students: 0, staff: 1, att_pct: 0, fees_collected: 0, fees_pending: 0 },
+    ],
+    unassigned_students: 1,
+    tests_this_week: 4,
+  }
+
+  it('includes each branch name and its key numbers', () => {
+    const msg = weeklyReportMessage(report)
+    expect(msg).toContain('Noida Central')
+    expect(msg).toContain('Sector 18')
+    expect(msg).toContain('88%')
+    expect(msg).toContain('₹50,000')
+    expect(msg).toContain('+2 new')
+  })
+
+  it('shows centre totals (unassigned + tests)', () => {
+    const msg = weeklyReportMessage(report)
+    expect(msg).toContain('Unassigned students: 1')
+    expect(msg).toContain('Tests conducted this week: 4')
+  })
+
+  it('handles a centre with no branches', () => {
+    const msg = weeklyReportMessage({ generated_at: '2026-06-30T00:00:00Z', branches: [], unassigned_students: 0, tests_this_week: 0 })
+    expect(msg).toContain('No branches configured yet')
   })
 })
