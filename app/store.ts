@@ -61,7 +61,7 @@ interface State {
   currentStudentDbId: string | null
   stuPendingFee: { amount: string; period: string; dueDate: string } | null
   searchQuery: string
-  lastAddedCode: string
+  lastAdded: { code: string; name: string; parent: string } | null
 }
 
 interface Actions {
@@ -123,7 +123,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   timetableData: {}, schedule: [], rankData: {}, subjects: [],
   stuReminders: [], stuNotifications: [], stuAttendanceLog: [],
   stuFeeHistory: [], stuResults: [],
-  currentStudentDbId: null, stuPendingFee: null, searchQuery: '', lastAddedCode: '',
+  currentStudentDbId: null, stuPendingFee: null, searchQuery: '', lastAdded: null,
 
   go: (screen, tab) => set({ screen, tab: (tab ?? screen) as Tab, origin: null }),
   goFrom: (screen, tab, origin) => set({ screen, tab, origin }),
@@ -200,7 +200,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       if (error) { get().notify('Could not save student — check connection'); return }
       if (data) set((s) => ({ students: s.students.map(x => x.id === code && !x.dbId ? { ...x, dbId: data.id } : x) }))
     })
-    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' }, lastAddedCode: code })
+    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' }, lastAdded: { code, name: ns.name, parent: ns.parent } })
   },
 
   saveAttendance: (studentNames) => {

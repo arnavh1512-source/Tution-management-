@@ -19,17 +19,25 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function handleAuth(userId: string, email: string) {
-    const { data: profile } = await supabase.from('profiles').select('role, staff_status').eq('id', userId).single()
-    const role = (profile?.role as Role) ?? 'student'
-    const staffStatus = (profile?.staff_status as StaffStatus) ?? 'none'
-    const { data: headExists } = await supabase.rpc('head_exists')
-    setAuth(userId, role, email, staffStatus, !!headExists)
-    // Only approved staff load the centre's full dataset. dataLoading gates the
-    // UI so Home never flashes zeros before the first fetch completes.
-    if ((role === 'admin' || role === 'teacher') && staffStatus === 'approved') {
-      set({ dataLoading: true })
-      await fetchAllData()
-      set({ dataLoading: false })
+    try {
+      const { data: profile } = await supabase.from('profiles').select('role, staff_status').eq('id', userId).single()
+      const role = (profile?.role as Role) ?? 'student'
+      const staffStatus = (profile?.staff_status as StaffStatus) ?? 'none'
+      const { data: headExists } = await supabase.rpc('head_exists')
+      setAuth(userId, role, email, staffStatus, !!headExists)
+      // Only approved staff load the centre's full dataset. dataLoading gates the
+      // UI so Home never flashes zeros before the first fetch completes.
+      if ((role === 'admin' || role === 'teacher') && staffStatus === 'approved') {
+        set({ dataLoading: true })
+        try { await fetchAllData() }
+        catch { useDashboard.getState().notify('Could not load data — check your connection and refresh') }
+        finally { set({ dataLoading: false }) }
+      }
+    } catch {
+      // Network/unexpected failure before we resolved the role: never strand the
+      // user on the splash spinner — clear loading so the UI can recover.
+      set({ authLoading: false, dataLoading: false })
+      useDashboard.getState().notify('Connection problem — please refresh')
     }
   }
 
@@ -230,7 +238,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       lastRefresh.current = Date.now()
       const st = useDashboard.getState()
       if (st.supabaseUserId && (st.role === 'admin' || st.role === 'teacher') && st.staffStatus === 'approved') {
-        fetchAllData()
+        fetchAllData().catch(() => {}) // best-effort background refresh; ignore transient failures
       } else if (!st.supabaseUserId && st.currentStudentDbId) {
         const code = localStorage.getItem('student_code')
         if (code) st.loadStudentByCode(code, false) // refresh data without navigating
