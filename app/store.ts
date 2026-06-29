@@ -404,8 +404,15 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   },
 
   loadStaff: async () => {
-    const { data, error } = await supabase.rpc('list_staff')
-    if (error) { get().notify('Could not load staff'); return }
+    // Read profiles directly — RLS already lets an authenticated head view all
+    // profiles, and this avoids any dependency on the list_staff RPC being
+    // present/healthy in the live DB.
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, role, staff_status, head_requested')
+      .neq('staff_status', 'none')
+      .order('created_at', { ascending: false })
+    if (error) { console.error('loadStaff failed:', error); get().notify(`Could not load staff: ${error.message}`); return }
     const list: StaffMember[] = (data ?? []).map((r: Record<string, unknown>) => ({
       id: r.id as string, name: r.full_name as string, email: (r.email as string) ?? '',
       role: r.role as string, status: r.staff_status as StaffStatus, headRequested: !!r.head_requested,
