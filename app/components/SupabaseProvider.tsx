@@ -216,6 +216,20 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // If Google/Supabase rejected the sign-in, the reason comes back in the URL
+    // (query OR hash) as ?error=...&error_description=... — surface it instead of
+    // silently bouncing the user back to the login screen.
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const query = new URLSearchParams(window.location.search)
+    const err = query.get('error_description') || query.get('error') || hash.get('error_description') || hash.get('error')
+    if (err) {
+      const msg = decodeURIComponent(err).replace(/\+/g, ' ')
+      console.error('OAuth callback error:', msg)
+      useDashboard.getState().notify(`Sign-in failed: ${msg}`)
+      // Clean the URL so a refresh doesn't re-trigger the toast.
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) handleAuth(session.user.id, session.user.email ?? '')
       else resumeStudentOrLanding()
