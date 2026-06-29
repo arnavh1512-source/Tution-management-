@@ -252,7 +252,7 @@ export function BranchesScreen() {
 }
 
 export function SubjectsScreen() {
-  const { subjects, back, addSubject } = useDashboard()
+  const { subjects, back, addSubject, deleteSubject } = useDashboard()
   const [name, setName] = useState('')
 
   const handleAdd = () => {
@@ -282,6 +282,7 @@ export function SubjectsScreen() {
             <div key={s.name} className="bg-white border border-td-border rounded-2xl p-[13px] px-[15px] flex items-center gap-[13px]">
               <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[14px]" style={{ background: av(i) }}>{s.name[0]}</div>
               <div className="flex-1 text-[14px] font-bold text-td-dark">{s.name}</div>
+              {s.dbId && <button onClick={() => deleteSubject(s.dbId!)} className="border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-[12px] font-bold py-1.5 px-3 rounded-[11px] cursor-pointer">Remove</button>}
             </div>
           ))}
         </div>

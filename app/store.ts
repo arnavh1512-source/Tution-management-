@@ -89,6 +89,7 @@ interface Actions {
   addBranch: (name: string, address: string, isMain: boolean) => void
   deleteBranch: (dbId: string) => void
   addSubject: (name: string) => void
+  deleteSubject: (dbId: string) => void
   loadStudentByCode: (code: string, navigate?: boolean) => Promise<boolean>
   registerAsHead: () => Promise<void>
   registerAsTeacher: () => Promise<void>
@@ -361,6 +362,12 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       })
     set({ subjects: [...list, item] })
     get().notify(`Subject "${name}" added`)
+  },
+
+  deleteSubject: (dbId) => {
+    set((s) => ({ subjects: s.subjects.filter(x => x.dbId !== dbId) }))
+    supabase.from('subjects').delete().eq('id', dbId).then(dbErr('delete subject', get().notify))
+    get().notify('Subject removed')
   },
 
   loadStudentByCode: async (code, navigate = true) => {

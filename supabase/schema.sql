@@ -94,8 +94,7 @@ create table public.subjects (
   created_at timestamptz default now()
 );
 
-insert into public.subjects (name) values
-  ('Mathematics'), ('Physics'), ('Chemistry'), ('English'), ('Biology');
+-- No seeded subjects: each centre adds its own.
 
 -- ============================================
 -- 7. TESTS & RESULTS
