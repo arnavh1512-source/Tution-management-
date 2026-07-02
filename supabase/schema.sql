@@ -787,7 +787,8 @@ begin
     'att_total', (select count(*) from public.attendance a where a.student_id = s.id and a.date >= v_date_since),
     'tests', (select count(*) from public.results r join public.tests t on t.id = r.test_id where r.student_id = s.id and t.date >= v_date_since),
     'avg_pct', (select coalesce(round(sum(r.marks)::numeric / nullif(sum(t.max_marks), 0) * 100), 0)::int from public.results r join public.tests t on t.id = r.test_id where r.student_id = s.id and t.date >= v_date_since)
-  ) order by s.name) from public.students s), '[]'::json) into v_result;
+  ) order by s.name), '[]'::json) into v_result
+  from public.students s;
   return v_result;
 end; $$;
 
@@ -811,9 +812,9 @@ begin
     'attendance_marks', (select count(*) from public.attendance a where a.recorded_by = p.id and a.created_at >= v_since),
     'tests_entered', (select count(*) from public.tests t where t.recorded_by = p.id and t.created_at >= v_since),
     'assignments_created', (select count(*) from public.assignments ag where ag.recorded_by = p.id and ag.created_at >= v_since)
-  ) order by (p.role = 'admin') desc, p.full_name)
+  ) order by (p.role = 'admin') desc, p.full_name), '[]'::json) into v_result
   from public.profiles p
-  where p.staff_status = 'approved' and p.role in ('admin', 'teacher')), '[]'::json) into v_result;
+  where p.staff_status = 'approved' and p.role in ('admin', 'teacher');
   return v_result;
 end; $$;
 
