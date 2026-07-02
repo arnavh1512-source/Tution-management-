@@ -81,6 +81,7 @@ create table public.attendance (
   date date not null default current_date,
   status text not null check (status in ('Present', 'Absent', 'Leave')),
   marked_by uuid references public.teachers(id),
+  recorded_by uuid references public.profiles(id) default auth.uid(),
   created_at timestamptz default now(),
   unique(student_id, date)
 );
@@ -107,6 +108,7 @@ create table public.tests (
   max_marks int not null default 50,
   date date not null default current_date,
   created_by uuid references public.teachers(id),
+  recorded_by uuid references public.profiles(id) default auth.uid(),
   created_at timestamptz default now()
 );
 
@@ -130,6 +132,7 @@ create table public.assignments (
   due_date date not null,
   instructions text,
   created_by uuid references public.teachers(id),
+  recorded_by uuid references public.profiles(id) default auth.uid(),
   created_at timestamptz default now()
 );
 
@@ -790,6 +793,32 @@ end; $$;
 
 revoke all on function public.weekly_student_reports() from public, anon;
 grant execute on function public.weekly_student_reports() to authenticated;
+
+-- ---- Weekly per-teacher activity (head only) ------------------------------
+-- Each approved staff member's last-7-day activity, attributed via the
+-- recorded_by column (defaults to auth.uid() on every insert).
+create or replace function public.weekly_teacher_activity()
+returns json language plpgsql security definer set search_path = public as $$
+declare v_result json; v_since timestamptz := now() - interval '7 days';
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  select coalesce(json_agg(json_build_object(
+    'name', p.full_name,
+    'email', p.email,
+    'is_head', (p.role = 'admin'),
+    'attendance_marks', (select count(*) from public.attendance a where a.recorded_by = p.id and a.created_at >= v_since),
+    'tests_entered', (select count(*) from public.tests t where t.recorded_by = p.id and t.created_at >= v_since),
+    'assignments_created', (select count(*) from public.assignments ag where ag.recorded_by = p.id and ag.created_at >= v_since)
+  ) order by (p.role = 'admin') desc, p.full_name)
+  from public.profiles p
+  where p.staff_status = 'approved' and p.role in ('admin', 'teacher')), '[]'::json) into v_result;
+  return v_result;
+end; $$;
+
+revoke all on function public.weekly_teacher_activity() from public, anon;
+grant execute on function public.weekly_teacher_activity() to authenticated;
 
 -- ---- Realtime: let a pending teacher auto-advance when approved ------------
 -- Adds profiles to the realtime publication (idempotent). RLS still applies,

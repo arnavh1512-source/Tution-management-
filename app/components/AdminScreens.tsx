@@ -154,9 +154,9 @@ export function StaffApprovalsScreen() {
 }
 
 export function ReportsScreen() {
-  const { back, weeklyReport: r, loadWeeklyReport, studentReports, loadStudentReports, myPhone } = useDashboard()
-  const [tab, setTab] = useState<'branches' | 'students'>('branches')
-  useEffect(() => { loadWeeklyReport(); loadStudentReports() }, [loadWeeklyReport, loadStudentReports])
+  const { back, weeklyReport: r, loadWeeklyReport, studentReports, loadStudentReports, teacherActivity, loadTeacherActivity, myPhone } = useDashboard()
+  const [tab, setTab] = useState<'branches' | 'students' | 'teachers'>('branches')
+  useEffect(() => { loadWeeklyReport(); loadStudentReports(); loadTeacherActivity() }, [loadWeeklyReport, loadStudentReports, loadTeacherActivity])
   const inr = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
 
   return (
@@ -164,12 +164,46 @@ export function ReportsScreen() {
       <ScreenHeader title="Weekly Report" onBack={back} />
 
       <div className="flex gap-2 mb-4">
-        {(['branches', 'students'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} className="flex-1 text-[13px] font-bold py-2.5 rounded-[12px] cursor-pointer border capitalize" style={{ background: tab === t ? '#2a6fdb' : '#fff', color: tab === t ? '#fff' : '#3a4456', borderColor: tab === t ? '#2a6fdb' : '#e6eaf2' }}>{t}</button>
+        {(['branches', 'students', 'teachers'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} className="flex-1 text-[12.5px] font-bold py-2.5 rounded-[12px] cursor-pointer border capitalize" style={{ background: tab === t ? '#2a6fdb' : '#fff', color: tab === t ? '#fff' : '#3a4456', borderColor: tab === t ? '#2a6fdb' : '#e6eaf2' }}>{t}</button>
         ))}
       </div>
 
-      {tab === 'students' ? (
+      {tab === 'teachers' ? (
+        !teacherActivity ? (
+          <div className="text-center text-td-muted text-sm py-12">Loading activity…</div>
+        ) : teacherActivity.length === 0 ? (
+          <div className="text-center text-td-muted text-sm py-10 bg-white border border-td-border rounded-[16px]">No approved staff yet.</div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="text-[12px] text-td-muted mb-1">What each staff member logged in the last 7 days.</div>
+            {teacherActivity.map(t => (
+              <div key={t.email + t.name} className="bg-white border border-td-border rounded-[18px] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="text-[14.5px] font-extrabold text-td-dark">{t.name || t.email}</div>
+                    <div className="text-[11.5px] text-td-muted">{t.email}</div>
+                  </div>
+                  <span className="text-[10.5px] font-bold py-[5px] px-2.5 rounded-[20px]" style={{ color: t.is_head ? '#2a6fdb' : '#2fa36b', background: t.is_head ? '#eaf1fc' : '#e7f5ee' }}>{t.is_head ? 'Head' : 'Teacher'}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { v: t.attendance_marks, l: 'Attendance' },
+                    { v: t.tests_entered, l: 'Results' },
+                    { v: t.assignments_created, l: 'Assignments' },
+                  ].map(x => (
+                    <div key={x.l} className="bg-[#f7f9fc] rounded-[12px] py-2.5">
+                      <div className="text-[18px] font-extrabold text-td-dark leading-none">{x.v}</div>
+                      <div className="text-[10.5px] text-td-muted mt-1 font-semibold">{x.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="text-[11px] text-td-subtle text-center leading-relaxed mt-1">Activity is counted from when staff started using the app — older records aren&apos;t attributed.</div>
+          </div>
+        )
+      ) : tab === 'students' ? (
         !studentReports ? (
           <div className="text-center text-td-muted text-sm py-12">Generating reports…</div>
         ) : studentReports.length === 0 ? (
