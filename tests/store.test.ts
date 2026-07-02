@@ -86,6 +86,19 @@ describe('mapSnapshot', () => {
     expect(empty.students?.[0].attendance).toBe(0)
   })
 
+  it('maps class assignments for the student', () => {
+    const r = mapSnapshot({
+      student: { dbId: 'd', code: 'c', klass: 'Class 10-B' },
+      assignments: [
+        { title: 'Algebra WS 5', subject: 'Mathematics', due: '2026-07-05', instructions: 'Do Q1-10' },
+        { title: 'Essay', subject: 'English', due: '2026-07-03', instructions: '' },
+      ],
+    })
+    expect(r.stuAssignments?.length).toBe(2)
+    expect(r.stuAssignments?.[0].title).toBe('Algebra WS 5')
+    expect(r.stuAssignments?.[0].subject).toBe('Mathematics')
+  })
+
   it('groups the class timetable by day', () => {
     const r = mapSnapshot({
       student: { dbId: 'd', code: 'c', klass: 'Class 10-B' },

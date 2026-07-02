@@ -83,14 +83,18 @@ export function StuHomeScreen() {
         </button>
       </div>
 
-      <button onClick={() => go('stuTimetable', 'stuHome')} className="w-full text-left bg-white border border-td-border rounded-[18px] p-[15px] flex items-center gap-[13px] mb-5 cursor-pointer">
-        <div className="w-[42px] h-[42px] rounded-[13px] bg-[#eef0fc] flex items-center justify-center shrink-0 text-xl">🗓️</div>
-        <div className="flex-1">
-          <div className="text-sm font-extrabold text-td-dark">My Timetable</div>
-          <div className="text-xs text-td-muted mt-0.5">See your class schedule</div>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
+      <div className="grid grid-cols-2 gap-2.5 mb-5">
+        <button onClick={() => go('stuTimetable', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-[15px] cursor-pointer">
+          <div className="w-[42px] h-[42px] rounded-[13px] bg-[#eef0fc] flex items-center justify-center text-xl mb-2.5">🗓️</div>
+          <div className="text-[13.5px] font-extrabold text-td-dark">Timetable</div>
+          <div className="text-[11px] text-td-muted mt-0.5">Class schedule</div>
+        </button>
+        <button onClick={() => go('stuAssignments', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-[15px] cursor-pointer">
+          <div className="w-[42px] h-[42px] rounded-[13px] bg-[#fcf3e3] flex items-center justify-center text-xl mb-2.5">📚</div>
+          <div className="text-[13.5px] font-extrabold text-td-dark">Homework</div>
+          <div className="text-[11px] text-td-muted mt-0.5">Assignments</div>
+        </button>
+      </div>
 
       {stuPendingFee && (
         <button onClick={() => go('stuFees', 'stuHome')} className="w-full text-left border-none cursor-pointer rounded-[18px] p-[15px] flex items-center gap-[13px] mb-5" style={{ background: 'linear-gradient(135deg,#e8553c,#ef7a64)' }}>
@@ -513,6 +517,37 @@ export function StuTimetableScreen() {
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function StuAssignmentsScreen() {
+  const { go, stuAssignments } = useDashboard()
+  const [open, setOpen] = useState<number | null>(null)
+
+  return (
+    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
+      <ScreenHeader title="Homework" onBack={() => go('stuHome', 'stuHome')} />
+
+      {stuAssignments.length === 0 ? (
+        <div className="text-center text-td-muted text-sm py-12 leading-relaxed">No homework assigned yet.<br />New assignments from your teacher will appear here.</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {stuAssignments.map((a, i) => (
+            <button key={i} onClick={() => setOpen(open === i ? null : i)} className="w-full text-left bg-white border border-td-border rounded-[18px] p-4 cursor-pointer">
+              <div className="flex items-center gap-[13px]">
+                <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-lg bg-[#fcf3e3]">📚</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-extrabold text-td-dark">{a.title}</div>
+                  <div className="text-[12px] text-td-muted mt-0.5">{a.subject}{a.due ? ` · due ${a.due}` : ''}</div>
+                </div>
+                {a.instructions && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c2cad8" strokeWidth="2.4" strokeLinecap="round" className={`shrink-0 transition-transform ${open === i ? 'rotate-90' : ''}`}><path d="m9 18 6-6-6-6"/></svg>}
+              </div>
+              {open === i && a.instructions && <div className="text-[13px] text-td-text leading-relaxed mt-3 pt-3 border-t border-[#f0f2f7]">{a.instructions}</div>}
+            </button>
+          ))}
         </div>
       )}
     </div>

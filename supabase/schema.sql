@@ -691,6 +691,14 @@ begin
         'subject', tt.subject, 'room', tt.room
       ) order by tt.start_time)
       from public.timetable tt where tt.class = v_student.class
+    ), '[]'::json),
+    'assignments', coalesce((
+      select json_agg(json_build_object(
+        'title', ag.title, 'subject', sub.name, 'due', ag.due_date, 'instructions', ag.instructions
+      ) order by ag.due_date desc)
+      from public.assignments ag
+      left join public.subjects sub on sub.id = ag.subject_id
+      where ag.class = v_student.class
     ), '[]'::json)
   ) into v_result;
 

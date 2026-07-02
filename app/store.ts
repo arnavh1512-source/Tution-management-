@@ -10,7 +10,7 @@ export type Screen =
   | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'more' | 'subscription'
   | 'admin' | 'staffApprovals' | 'staffProfile' | 'reports' | 'register' | 'pending' | 'denied'
   | 'stuHome' | 'stuAttendance' | 'stuResults' | 'stuRanking' | 'stuTeachers'
-  | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile' | 'stuTimetable'
+  | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile' | 'stuTimetable' | 'stuAssignments'
 
 export type Tab = 'home' | 'timetable' | 'students' | 'teachers' | 'more'
   | 'stuHome' | 'stuResults' | 'stuRanking' | 'stuTeachers' | 'stuProfile'
@@ -29,6 +29,7 @@ export interface AssignmentItem { title: string; due: string; klass: string; sub
 export interface BranchItem { name: string; address: string; students: number; staff: number; main: boolean; dbId?: string }
 export interface StuResultItem { subject: string; test: string; date: string; marks: number; total: number }
 export interface AttLogItem { day: string; date: string; status: string; icon: string; tint: string; color: string }
+export interface StuAssignmentItem { title: string; subject: string; due: string; instructions: string }
 export interface FeeHistoryItem { period: string; date: string; amount: string }
 export interface NotifItem { icon: string; tint: string; title: string; detail: string; when: string; dbId?: string }
 export interface SubjectItem { name: string; dbId: string }
@@ -44,7 +45,7 @@ interface State {
   staffStatus: StaffStatus; headExists: boolean; staffList: StaffMember[]; weeklyReport: WeeklyReport | null; studentReports: StudentReport[] | null; teacherActivity: TeacherActivity[] | null
   googleEmail: string; myName: string; myPhone: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string; branch: string }
-  newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string }
+  newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string; fee: string; feeDue: string }
   stuTeacherIndex: number; stuRankSubject: string
   stuEdit: { name: string; parentNumber: string; address: string }
   supabaseUserId: string | null; authLoading: boolean; dataLoading: boolean
@@ -62,6 +63,7 @@ interface State {
   stuAttendanceLog: AttLogItem[]
   stuFeeHistory: FeeHistoryItem[]
   stuResults: StuResultItem[]
+  stuAssignments: StuAssignmentItem[]
   currentStudentDbId: string | null
   stuPendingFee: { amount: string; period: string; dueDate: string } | null
   searchQuery: string
@@ -123,7 +125,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   staffStatus: 'none', headExists: false, staffList: [], weeklyReport: null, studentReports: null, teacherActivity: null,
   googleEmail: '', myName: '', myPhone: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: '', qualification: '', experience: '', branch: '' },
-  newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' },
+  newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', fee: '', feeDue: '' },
   teachers: [], students: [],
   stuTeacherIndex: 0, stuRankSubject: '',
   stuEdit: { name: '', parentNumber: '', address: '' },
@@ -132,7 +134,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   branchesList: [], meetingsList: [], assignmentsList: [],
   timetableData: {}, schedule: [], rankData: {}, subjects: [],
   stuReminders: [], stuNotifications: [], stuAttendanceLog: [],
-  stuFeeHistory: [], stuResults: [],
+  stuFeeHistory: [], stuResults: [], stuAssignments: [],
   currentStudentDbId: null, stuPendingFee: null, searchQuery: '', lastAdded: null,
 
   go: (screen, tab) => set({ screen, tab: (tab ?? screen) as Tab, origin: null }),
@@ -208,9 +210,18 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       address: ns.address, branch_id: branchId ?? null,
     }).select().single().then(({ data, error }) => {
       if (error) { get().notify('Could not save student — check connection'); return }
-      if (data) set((s) => ({ students: s.students.map(x => x.id === code && !x.dbId ? { ...x, dbId: data.id } : x) }))
+      if (data) {
+        set((s) => ({ students: s.students.map(x => x.id === code && !x.dbId ? { ...x, dbId: data.id } : x) }))
+        // Optional enrolment fee — creates the first fee record so the student
+        // immediately sees what's due (keeps status and fee records in sync).
+        const amt = Number(ns.fee)
+        if (amt > 0) {
+          const period = new Date().toLocaleString('en', { month: 'short', year: 'numeric' })
+          supabase.from('fees').insert({ student_id: data.id, amount: amt, period, due_date: ns.feeDue || new Date().toISOString().split('T')[0], status: 'Due' }).then(dbErr('add enrolment fee', get().notify))
+        }
+      }
     })
-    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' }, lastAdded: { code, name: ns.name, parent: ns.parent } })
+    set({ students: [student, ...students], newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', fee: '', feeDue: '' }, lastAdded: { code, name: ns.name, parent: ns.parent } })
   },
 
   saveAttendance: (studentNames) => {
@@ -324,6 +335,11 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       if (newStatus === 'Paid') {
         supabase.from('fees').update({ status: 'Paid', paid_date: new Date().toISOString().split('T')[0] })
           .eq('student_id', student.dbId).eq('status', 'Due').then(dbErr('mark fees paid', get().notify))
+      } else {
+        // Reopen: marking a student Due again restores their fee record so the
+        // pending fee shows for them (and in fee history/reports) once more.
+        supabase.from('fees').update({ status: 'Due', paid_date: null })
+          .eq('student_id', student.dbId).eq('status', 'Paid').then(dbErr('reopen fees', get().notify))
       }
     }
     get().notify(`${student.name}: ${newStatus}`)
@@ -486,7 +502,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabaseUserId: null, staffStatus: 'none', headExists: false, staffList: [],
       teachers: [], students: [], branchesList: [], meetingsList: [], assignmentsList: [],
       timetableData: {}, schedule: [], rankData: {}, subjects: [],
-      stuReminders: [], stuNotifications: [], stuAttendanceLog: [], stuFeeHistory: [], stuResults: [],
+      stuReminders: [], stuNotifications: [], stuAttendanceLog: [], stuFeeHistory: [], stuResults: [], stuAssignments: [],
       currentStudentDbId: null, stuPendingFee: null,
     })
     get().notify('Signed out')
@@ -627,10 +643,14 @@ export function mapSnapshot(snap: any): Partial<State> {
     timetableData[day].push([t.start ?? '', t.end ?? '', t.subject ?? '', student.klass ?? '', t.room ?? ''])
   }
 
+  const stuAssignments: StuAssignmentItem[] = (snap.assignments ?? []).map((a: any) => ({
+    title: a.title ?? '', subject: a.subject ?? '', due: fmtDate(a.due), instructions: a.instructions ?? '',
+  }))
+
   return {
     students: [student], currentStudentDbId: student.dbId ?? null,
     stuAttendanceLog, stuResults, stuFeeHistory, stuPendingFee,
     stuNotifications, stuReminders: stuNotifications.slice(0, 3),
-    teachers, rankData, timetableData,
+    teachers, rankData, timetableData, stuAssignments,
   }
 }
