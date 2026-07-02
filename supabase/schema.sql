@@ -1,5 +1,5 @@
 -- ============================================
--- Second School — Supabase Schema
+-- Second Skool — Supabase Schema
 -- Run this in Supabase SQL Editor (Dashboard → SQL)
 -- ============================================
 

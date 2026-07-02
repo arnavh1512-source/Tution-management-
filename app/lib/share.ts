@@ -13,7 +13,7 @@ export function appOrigin(): string {
 export function studentCodeMessage(name: string, code: string): string {
   const who = name.trim() ? name.trim() : 'your child'
   return [
-    `Hi! Here is the login code for ${who} at Second School.`,
+    `Hi! Here is the login code for ${who} at Second Skool.`,
     '',
     `Code: ${code}`,
     '',
@@ -27,7 +27,7 @@ const inr = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
 
 // Formats the weekly branch report as a WhatsApp-friendly message (*bold* via
 // asterisks, • bullets). Sent by the head to themselves or a co-owner.
-export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second School'): string {
+export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second Skool'): string {
   const date = new Date(r.generated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
   const lines: string[] = [`*${centreName} — Weekly Report*`, `As of ${date}`, '']
   if (r.branches.length === 0) lines.push('No branches configured yet.')
@@ -46,7 +46,7 @@ export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second School
 }
 
 // A per-student weekly progress note for the parent's WhatsApp.
-export function studentReportMessage(s: StudentReport, centreName = 'Second School'): string {
+export function studentReportMessage(s: StudentReport, centreName = 'Second Skool'): string {
   const attPct = s.att_total > 0 ? Math.round((s.att_present / s.att_total) * 100) : null
   const lines: string[] = [`*${centreName} — Weekly update*`, `*${s.name}* · ${s.klass}`, '']
   lines.push(`• Attendance: ${attPct === null ? 'no classes marked this week' : `${attPct}% (${s.att_present}/${s.att_total})`}`)

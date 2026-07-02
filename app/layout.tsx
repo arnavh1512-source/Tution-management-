@@ -9,8 +9,8 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Second School',
-  description: 'Second School — attendance, results, fees, rankings & more.',
+  title: 'Second Skool',
+  description: 'Second Skool — attendance, results, fees, rankings & more.',
 }
 
 export const viewport: Viewport = {

@@ -1,4 +1,4 @@
-# Second School — Setup & Operations Guide
+# Second Skool — Setup & Operations Guide
 
 Production setup for the tuition-management app. No manual database edits are ever
 required after the one-time schema run — roles are handled in-app.

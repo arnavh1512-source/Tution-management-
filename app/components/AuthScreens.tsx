@@ -41,7 +41,7 @@ export function LoginScreen() {
   return (
     <div className="animate-[pop_.35s_ease] px-6 pt-10 pb-6 min-h-[700px] flex flex-col">
       {LOGO}
-      <div className="text-[26px] font-extrabold text-td-dark tracking-tight mt-[22px]">Second School</div>
+      <div className="text-[26px] font-extrabold text-td-dark tracking-tight mt-[22px]">Second Skool</div>
 
       {mode === 'choose' && (
         <>
@@ -104,7 +104,7 @@ export function RegisterScreen() {
     <div className="animate-[pop_.35s_ease] px-6 pt-10 pb-6 min-h-[700px] flex flex-col">
       {LOGO}
       <div className="text-[24px] font-extrabold text-td-dark tracking-tight mt-[22px]">Set up your access</div>
-      <div className="text-sm text-td-muted mt-2 leading-relaxed">Signed in as <span className="font-bold text-td-text">{googleEmail}</span>. Choose how you&apos;ll use Second School.</div>
+      <div className="text-sm text-td-muted mt-2 leading-relaxed">Signed in as <span className="font-bold text-td-text">{googleEmail}</span>. Choose how you&apos;ll use Second Skool.</div>
 
       <div className="flex flex-col gap-[13px] mt-7">
         {!headExists && (
