@@ -73,12 +73,12 @@ export function AdminPanel() {
 }
 
 export function StaffApprovalsScreen() {
-  const { back, staffList, loadStaff, approveTeacher, rejectTeacher, grantHead, removeStaff, supabaseUserId } = useDashboard()
+  const { back, staffList, loadStaff, loadMyCentre, joinCode, centreName, approveTeacher, rejectTeacher, grantHead, removeStaff, supabaseUserId, notify } = useDashboard()
 
   // Reload on open, and live-refresh whenever any profile changes (e.g. a new
   // teacher registers) so pending requests appear without leaving the screen.
   useEffect(() => {
-    loadStaff()
+    loadStaff(); loadMyCentre()
     const channel = supabase
       .channel('staff-approvals-watch')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadStaff())
@@ -93,7 +93,21 @@ export function StaffApprovalsScreen() {
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Staff access" onBack={back} />
 
-      <div className="text-[13px] text-td-muted leading-relaxed mb-5">Approve teachers so they can mark attendance and enter marks. Grant head access only to people you fully trust.</div>
+      <div className="text-[13px] text-td-muted leading-relaxed mb-4">Approve teachers so they can mark attendance and enter marks. Grant head access only to people you fully trust.</div>
+
+      {joinCode && (
+        <button onClick={() => { navigator.clipboard.writeText(joinCode); notify('Join code copied!') }} className="w-full text-left border-2 border-dashed border-td-primary bg-[#eaf1fc] rounded-[16px] p-3.5 mb-5 cursor-pointer flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-bold text-td-muted">{centreName || 'Your centre'} · JOIN CODE</div>
+            <div className="text-[20px] font-extrabold text-td-primary tracking-[0.15em]">{joinCode}</div>
+            <div className="text-[11px] text-td-muted mt-0.5">Share with teachers so they can join your centre.</div>
+          </div>
+          <div className="text-[11px] font-bold text-td-primary flex items-center gap-1 shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </div>
+        </button>
+      )}
 
       <div className="text-sm font-extrabold text-td-dark mb-3">Pending approval {pending.length > 0 && <span className="text-td-red">· {pending.length}</span>}</div>
       {pending.length === 0 ? (

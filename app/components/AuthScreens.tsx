@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useDashboard } from '../store'
 import { supabase } from '../lib/supabase'
+import { PrimaryButton } from './Shell'
 
 const LOGO = (
   <div className="w-[60px] h-[60px] rounded-[18px] flex items-center justify-center text-white font-extrabold text-2xl" style={{ background: 'linear-gradient(135deg,#2a6fdb,#5a93ef)' }}>S</div>
@@ -95,8 +96,11 @@ export function LoginScreen() {
 }
 
 export function RegisterScreen() {
-  const { headExists, googleEmail, registerAsHead, registerAsTeacher, signOut } = useDashboard()
+  const { googleEmail, createCentre, joinCentre, signOut } = useDashboard()
   const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose')
+  const [centreName, setCentreName] = useState('')
+  const [code, setCode] = useState('')
 
   const run = async (fn: () => Promise<void>) => { setBusy(true); await fn(); setBusy(false) }
 
@@ -104,34 +108,48 @@ export function RegisterScreen() {
     <div className="animate-[pop_.35s_ease] px-6 pt-10 pb-6 min-h-[700px] flex flex-col">
       {LOGO}
       <div className="text-[24px] font-extrabold text-td-dark tracking-tight mt-[22px]">Set up your access</div>
-      <div className="text-sm text-td-muted mt-2 leading-relaxed">Signed in as <span className="font-bold text-td-text">{googleEmail}</span>. Choose how you&apos;ll use Second Skool.</div>
+      <div className="text-sm text-td-muted mt-2 leading-relaxed">Signed in as <span className="font-bold text-td-text">{googleEmail}</span>.</div>
 
-      <div className="flex flex-col gap-[13px] mt-7">
-        {!headExists && (
-          <button disabled={busy} onClick={() => run(registerAsHead)} className="text-left border rounded-[20px] p-[18px] flex items-center gap-[15px] cursor-pointer bg-white disabled:opacity-60" style={{ borderColor: '#dbe6fa' }}>
+      {mode === 'choose' && (
+        <div className="flex flex-col gap-[13px] mt-7">
+          <button onClick={() => setMode('create')} className="text-left border rounded-[20px] p-[18px] flex items-center gap-[15px] cursor-pointer bg-white" style={{ borderColor: '#dbe6fa' }}>
             <div className="w-[52px] h-[52px] rounded-2xl shrink-0 flex items-center justify-center bg-td-dark">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
             </div>
             <div className="flex-1">
-              <div className="text-base font-extrabold text-td-dark">Head Teacher</div>
-              <div className="text-[12.5px] text-td-muted mt-[3px]">Full access. Manage staff, students &amp; everything.</div>
+              <div className="text-base font-extrabold text-td-dark">Create a centre</div>
+              <div className="text-[12.5px] text-td-muted mt-[3px]">Start your own — you&apos;ll be the head teacher.</div>
             </div>
           </button>
-        )}
+          <button onClick={() => setMode('join')} className="text-left border rounded-[20px] p-[18px] flex items-center gap-[15px] cursor-pointer bg-white" style={{ borderColor: '#e6eaf2' }}>
+            <div className="w-[52px] h-[52px] rounded-2xl shrink-0 flex items-center justify-center bg-[#eaf1fc]">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
+            <div className="flex-1">
+              <div className="text-base font-extrabold text-td-dark">Join a centre</div>
+              <div className="text-[12.5px] text-td-muted mt-[3px]">As a teacher, with your centre&apos;s join code.</div>
+            </div>
+          </button>
+        </div>
+      )}
 
-        <button disabled={busy} onClick={() => run(registerAsTeacher)} className="text-left border rounded-[20px] p-[18px] flex items-center gap-[15px] cursor-pointer bg-white disabled:opacity-60" style={{ borderColor: '#e6eaf2' }}>
-          <div className="w-[52px] h-[52px] rounded-2xl shrink-0 flex items-center justify-center bg-[#eaf1fc]">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-          </div>
-          <div className="flex-1">
-            <div className="text-base font-extrabold text-td-dark">Teacher</div>
-            <div className="text-[12.5px] text-td-muted mt-[3px]">{headExists ? 'Daily updates. Needs head teacher approval.' : 'Daily updates: attendance, marks, assignments.'}</div>
-          </div>
-        </button>
-      </div>
+      {mode === 'create' && (
+        <div className="mt-7 flex flex-col gap-3">
+          <label className="text-xs font-bold text-td-muted">Centre name</label>
+          <input autoFocus value={centreName} onChange={e => setCentreName(e.target.value)} placeholder="e.g. Bright Future Tuition" className="w-full border border-td-border rounded-[14px] p-[14px] text-sm text-td-dark outline-none focus:border-td-primary" />
+          <PrimaryButton onClick={() => centreName.trim().length >= 2 ? run(() => createCentre(centreName)) : undefined}>{busy ? 'Creating…' : 'Create centre'}</PrimaryButton>
+          <button onClick={() => setMode('choose')} className="text-[13px] text-td-muted font-bold py-2 cursor-pointer border-none bg-transparent">Back</button>
+        </div>
+      )}
 
-      {headExists && (
-        <div className="text-[12px] text-td-subtle leading-relaxed mt-5 bg-[#f4f6fb] rounded-[14px] p-3.5">A head teacher already runs this centre, so new sign-ins join as teachers. The head teacher approves you before you can edit.</div>
+      {mode === 'join' && (
+        <div className="mt-7 flex flex-col gap-3">
+          <label className="text-xs font-bold text-td-muted">Centre join code</label>
+          <input autoFocus value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. 7X2K9Q" className="w-full border border-td-border rounded-[14px] p-[14px] text-sm text-td-dark outline-none focus:border-td-primary text-center tracking-[0.2em] font-bold" />
+          <PrimaryButton onClick={() => code.trim().length >= 4 ? run(() => joinCentre(code)) : undefined}>{busy ? 'Joining…' : 'Join centre'}</PrimaryButton>
+          <div className="text-[12px] text-td-subtle leading-relaxed">Ask your head teacher for the centre&apos;s join code. You&apos;ll get access once they approve you.</div>
+          <button onClick={() => setMode('choose')} className="text-[13px] text-td-muted font-bold py-2 cursor-pointer border-none bg-transparent">Back</button>
+        </div>
       )}
 
       <button onClick={signOut} className="mt-auto text-[12.5px] text-td-muted font-bold py-3 cursor-pointer border-none bg-transparent">Sign out</button>

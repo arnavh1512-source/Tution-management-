@@ -43,7 +43,7 @@ interface State {
   attClass: string; att: Record<number, string>; rankSubject: string; ttDay: string
   toast: string; editIndex: number
   staffStatus: StaffStatus; headExists: boolean; staffList: StaffMember[]; weeklyReport: WeeklyReport | null; studentReports: StudentReport[] | null; teacherActivity: TeacherActivity[] | null
-  googleEmail: string; myName: string; myPhone: string; reminderType: string; plan: string
+  googleEmail: string; myName: string; myPhone: string; centreName: string; joinCode: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string; branch: string }
   newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string; fee: string; feeDue: string }
   stuTeacherIndex: number; stuRankSubject: string
@@ -97,8 +97,9 @@ interface Actions {
   addSubject: (name: string) => void
   deleteSubject: (dbId: string) => void
   loadStudentByCode: (code: string, navigate?: boolean) => Promise<boolean>
-  registerAsHead: () => Promise<void>
-  registerAsTeacher: () => Promise<void>
+  createCentre: (name: string) => Promise<void>
+  joinCentre: (code: string) => Promise<void>
+  loadMyCentre: () => Promise<void>
   requestHead: () => Promise<void>
   loadStaff: () => Promise<void>
   loadWeeklyReport: () => Promise<void>
@@ -123,7 +124,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   attClass: '', att: {}, rankSubject: '', ttDay: ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
   toast: '', editIndex: 0,
   staffStatus: 'none', headExists: false, staffList: [], weeklyReport: null, studentReports: null, teacherActivity: null,
-  googleEmail: '', myName: '', myPhone: '', reminderType: 'Test', plan: 'Monthly',
+  googleEmail: '', myName: '', myPhone: '', centreName: '', joinCode: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: '', qualification: '', experience: '', branch: '' },
   newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '', fee: '', feeDue: '' },
   teachers: [], students: [],
@@ -412,19 +413,22 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     return true
   },
 
-  registerAsHead: async () => {
-    const { error } = await supabase.rpc('register_as_head')
-    // Error here usually means another account already claimed head — reflect
-    // that so the UI drops the Head Teacher option.
-    if (error) { get().notify(error.message || 'Could not register as head'); set({ headExists: true }); return }
-    get().notify('Welcome, head teacher!')
+  createCentre: async (name) => {
+    const { error } = await supabase.rpc('create_centre', { p_name: name })
+    if (error) { get().notify(error.message || 'Could not create centre'); return }
+    get().notify('Centre created — welcome!')
     if (typeof window !== 'undefined') window.location.reload()
   },
 
-  registerAsTeacher: async () => {
-    const { error } = await supabase.rpc('register_as_teacher')
-    if (error) { get().notify('Could not register'); return }
+  joinCentre: async (code) => {
+    const { error } = await supabase.rpc('join_centre', { p_code: code })
+    if (error) { get().notify(error.message || 'Invalid centre code'); return }
     set({ role: 'teacher', staffStatus: 'pending', screen: 'pending', tab: 'home' })
+  },
+
+  loadMyCentre: async () => {
+    const { data } = await supabase.rpc('my_centre')
+    if (data) set({ centreName: (data as { name?: string }).name ?? '', joinCode: (data as { join_code?: string }).join_code ?? '' })
   },
 
   requestHead: async () => {
