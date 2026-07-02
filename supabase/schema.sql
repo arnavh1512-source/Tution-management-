@@ -765,6 +765,32 @@ end; $$;
 revoke all on function public.weekly_branch_report() from public, anon;
 grant execute on function public.weekly_branch_report() to authenticated;
 
+-- ---- Weekly per-student reports (head only) -------------------------------
+-- One row per student with this week's attendance, new test results and fee
+-- status — used to send each parent an individual progress update.
+create or replace function public.weekly_student_reports()
+returns json language plpgsql security definer set search_path = public as $$
+declare v_result json; v_date_since date := current_date - 7;
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and staff_status = 'approved') then
+    raise exception 'Not authorized';
+  end if;
+  select coalesce(json_agg(json_build_object(
+    'name', s.name,
+    'klass', s.class,
+    'parent', s.parent_contact,
+    'fee_status', s.fee_status,
+    'att_present', (select count(*) from public.attendance a where a.student_id = s.id and a.date >= v_date_since and a.status = 'Present'),
+    'att_total', (select count(*) from public.attendance a where a.student_id = s.id and a.date >= v_date_since),
+    'tests', (select count(*) from public.results r join public.tests t on t.id = r.test_id where r.student_id = s.id and t.date >= v_date_since),
+    'avg_pct', (select coalesce(round(sum(r.marks)::numeric / nullif(sum(t.max_marks), 0) * 100), 0)::int from public.results r join public.tests t on t.id = r.test_id where r.student_id = s.id and t.date >= v_date_since)
+  ) order by s.name) from public.students s), '[]'::json) into v_result;
+  return v_result;
+end; $$;
+
+revoke all on function public.weekly_student_reports() from public, anon;
+grant execute on function public.weekly_student_reports() to authenticated;
+
 -- ---- Realtime: let a pending teacher auto-advance when approved ------------
 -- Adds profiles to the realtime publication (idempotent). RLS still applies,
 -- so a teacher only receives changes to their own row.

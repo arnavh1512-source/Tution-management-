@@ -34,12 +34,13 @@ export interface NotifItem { icon: string; tint: string; title: string; detail: 
 export interface SubjectItem { name: string; dbId: string }
 export interface BranchReport { name: string; students: number; new_students: number; staff: number; att_pct: number; fees_collected: number; fees_pending: number }
 export interface WeeklyReport { generated_at: string; branches: BranchReport[]; unassigned_students: number; tests_this_week: number }
+export interface StudentReport { name: string; klass: string; parent: string; fee_status: string; att_present: number; att_total: number; tests: number; avg_pct: number }
 
 interface State {
   screen: Screen; tab: Tab; role: Role; origin: string | null
   attClass: string; att: Record<number, string>; rankSubject: string; ttDay: string
   toast: string; editIndex: number
-  staffStatus: StaffStatus; headExists: boolean; staffList: StaffMember[]; weeklyReport: WeeklyReport | null
+  staffStatus: StaffStatus; headExists: boolean; staffList: StaffMember[]; weeklyReport: WeeklyReport | null; studentReports: StudentReport[] | null
   googleEmail: string; myName: string; myPhone: string; reminderType: string; plan: string
   newTeacher: { name: string; subject: string; qualification: string; experience: string; branch: string }
   newStudent: { name: string; school: string; klass: string; batch: string; branch: string; parent: string; address: string }
@@ -98,6 +99,7 @@ interface Actions {
   requestHead: () => Promise<void>
   loadStaff: () => Promise<void>
   loadWeeklyReport: () => Promise<void>
+  loadStudentReports: () => Promise<void>
   approveTeacher: (id: string) => Promise<void>
   rejectTeacher: (id: string) => Promise<void>
   grantHead: (id: string) => Promise<void>
@@ -116,7 +118,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   screen: 'home', tab: 'home', role: null, origin: null,
   attClass: '', att: {}, rankSubject: '', ttDay: ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
   toast: '', editIndex: 0,
-  staffStatus: 'none', headExists: false, staffList: [], weeklyReport: null,
+  staffStatus: 'none', headExists: false, staffList: [], weeklyReport: null, studentReports: null,
   googleEmail: '', myName: '', myPhone: '', reminderType: 'Test', plan: 'Monthly',
   newTeacher: { name: '', subject: '', qualification: '', experience: '', branch: '' },
   newStudent: { name: '', school: '', klass: 'Class 10', batch: '10-B', branch: '', parent: '', address: '' },
@@ -434,6 +436,12 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     const { data, error } = await supabase.rpc('weekly_branch_report')
     if (error) { console.error('weekly report failed:', error); get().notify(`Could not load report: ${error.message}`); return }
     set({ weeklyReport: data as WeeklyReport })
+  },
+
+  loadStudentReports: async () => {
+    const { data, error } = await supabase.rpc('weekly_student_reports')
+    if (error) { console.error('student reports failed:', error); get().notify(`Could not load reports: ${error.message}`); return }
+    set({ studentReports: (data ?? []) as StudentReport[] })
   },
 
   approveTeacher: async (id) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { studentCodeMessage, whatsappShareUrl, appOrigin, weeklyReportMessage } from '../app/lib/share'
+import { studentCodeMessage, whatsappShareUrl, appOrigin, weeklyReportMessage, studentReportMessage } from '../app/lib/share'
 
 describe('appOrigin', () => {
   it('falls back to the production URL when there is no window (SSR)', () => {
@@ -71,5 +71,20 @@ describe('weeklyReportMessage', () => {
   it('handles a centre with no branches', () => {
     const msg = weeklyReportMessage({ generated_at: '2026-06-30T00:00:00Z', branches: [], unassigned_students: 0, tests_this_week: 0 })
     expect(msg).toContain('No branches configured yet')
+  })
+})
+
+describe('studentReportMessage', () => {
+  it('computes attendance % and includes name, tests and fees', () => {
+    const msg = studentReportMessage({ name: 'Arjun', klass: 'Class 10-B', parent: '', fee_status: 'Due', att_present: 4, att_total: 5, tests: 2, avg_pct: 82 })
+    expect(msg).toContain('Arjun')
+    expect(msg).toContain('80% (4/5)')
+    expect(msg).toContain('2 (avg 82%)')
+    expect(msg).toContain('Fees: Due')
+  })
+
+  it('reports when no classes were marked this week', () => {
+    const msg = studentReportMessage({ name: 'Neha', klass: 'Class 9', parent: '', fee_status: 'Paid', att_present: 0, att_total: 0, tests: 0, avg_pct: 0 })
+    expect(msg).toContain('no classes marked this week')
   })
 })

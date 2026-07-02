@@ -21,7 +21,7 @@ export function studentCodeMessage(name: string, code: string): string {
   ].join('\n')
 }
 
-import type { WeeklyReport } from '../store'
+import type { WeeklyReport, StudentReport } from '../store'
 
 const inr = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
 
@@ -42,6 +42,18 @@ export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second School
   }
   if (r.unassigned_students) lines.push(`Unassigned students: ${r.unassigned_students}`)
   lines.push(`Tests conducted this week: ${r.tests_this_week}`)
+  return lines.join('\n')
+}
+
+// A per-student weekly progress note for the parent's WhatsApp.
+export function studentReportMessage(s: StudentReport, centreName = 'Second School'): string {
+  const attPct = s.att_total > 0 ? Math.round((s.att_present / s.att_total) * 100) : null
+  const lines: string[] = [`*${centreName} — Weekly update*`, `*${s.name}* · ${s.klass}`, '']
+  lines.push(`• Attendance: ${attPct === null ? 'no classes marked this week' : `${attPct}% (${s.att_present}/${s.att_total})`}`)
+  lines.push(`• Tests this week: ${s.tests}${s.tests > 0 ? ` (avg ${s.avg_pct}%)` : ''}`)
+  lines.push(`• Fees: ${s.fee_status}`)
+  lines.push('')
+  lines.push('Reply here if you have any questions. Thank you!')
   return lines.join('\n')
 }
 
