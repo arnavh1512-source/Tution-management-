@@ -100,6 +100,7 @@ interface Actions {
   createCentre: (name: string) => Promise<void>
   joinCentre: (code: string) => Promise<void>
   loadMyCentre: () => Promise<void>
+  renameCentre: (name: string) => Promise<void>
   requestHead: () => Promise<void>
   loadStaff: () => Promise<void>
   loadWeeklyReport: () => Promise<void>
@@ -429,6 +430,18 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   loadMyCentre: async () => {
     const { data } = await supabase.rpc('my_centre')
     if (data) set({ centreName: (data as { name?: string }).name ?? '', joinCode: (data as { join_code?: string }).join_code ?? '' })
+  },
+
+  renameCentre: async (name) => {
+    const trimmed = name.trim()
+    if (trimmed.length < 2) { get().notify('Enter a centre name'); return }
+    const id = get().supabaseUserId
+    if (!id) return
+    // RLS centres_write allows only the owner to update their centre row.
+    const { error } = await supabase.from('centres').update({ name: trimmed }).eq('owner_id', id)
+    if (error) { get().notify('Could not rename — only the centre owner can'); return }
+    set({ centreName: trimmed })
+    get().notify('Centre renamed')
   },
 
   requestHead: async () => {

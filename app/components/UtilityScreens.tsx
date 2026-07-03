@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDashboard, PLAN_META, PLAN_PERKS, REMINDER_TEMPLATES, initials, av, feeColor, type Screen } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
@@ -340,14 +340,26 @@ export function MoreScreen() {
 }
 
 export function StaffProfileScreen() {
-  const { go, role, myName, myPhone, googleEmail, saveStaffProfile, signOut } = useDashboard()
+  const { go, role, myName, myPhone, googleEmail, saveStaffProfile, signOut, centreName, loadMyCentre, renameCentre } = useDashboard()
   const isAdmin = role === 'admin'
   const [name, setName] = useState(myName)
   const [phone, setPhone] = useState(myPhone)
+  const [centre, setCentre] = useState(centreName)
   const [busy, setBusy] = useState(false)
   const displayName = name || googleEmail?.split('@')[0] || (isAdmin ? 'Head teacher' : 'Teacher')
 
-  const save = async () => { setBusy(true); await saveStaffProfile(name, phone); setBusy(false) }
+  useEffect(() => { if (isAdmin && !centreName) loadMyCentre() }, [isAdmin, centreName, loadMyCentre])
+
+  // Sync the input when the centre name arrives (adjust-during-render pattern).
+  const [prevCentreName, setPrevCentreName] = useState(centreName)
+  if (centreName !== prevCentreName) { setPrevCentreName(centreName); setCentre(centreName) }
+
+  const save = async () => {
+    setBusy(true)
+    await saveStaffProfile(name, phone)
+    if (isAdmin && centre.trim() && centre.trim() !== centreName) await renameCentre(centre)
+    setBusy(false)
+  }
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -366,6 +378,9 @@ export function StaffProfileScreen() {
       <div className="flex flex-col gap-3.5 mb-[18px]">
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Full name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Phone</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        {isAdmin && (
+          <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Centre name</label><input value={centre} onChange={e => setCentre(e.target.value)} placeholder="e.g. Bright Future Tuition" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+        )}
         <div className="flex items-center gap-2.5 bg-[#f4f6fb] border border-[#e6eaf2] rounded-[14px] p-3">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa4b6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
           <span className="text-[12px] text-td-muted">Your email is managed by Google and can&apos;t be changed here.</span>
