@@ -16,7 +16,10 @@ create table if not exists public.centres (
 );
 alter table public.centres enable row level security;
 
--- 2) current_centre() — the caller's centre (used by defaults + RLS) ----------
+-- 2) profiles.centre_id must exist BEFORE current_centre() is created
+-- (Postgres validates the sql-function body at creation time).
+alter table public.profiles      add column if not exists centre_id uuid references public.centres(id);
+
 create or replace function public.current_centre()
 returns uuid language sql security definer stable set search_path = public as $$
   select centre_id from public.profiles where id = auth.uid()
@@ -24,8 +27,7 @@ $$;
 revoke all on function public.current_centre() from public;
 grant execute on function public.current_centre() to anon, authenticated;
 
--- 3) centre_id on every tenant table -----------------------------------------
-alter table public.profiles      add column if not exists centre_id uuid references public.centres(id);
+-- 3) centre_id on every other tenant table ------------------------------------
 -- Child/data tables default to the acting user's centre so existing inserts
 -- (which never mention centre_id) are stamped automatically.
 alter table public.teachers      add column if not exists centre_id uuid references public.centres(id) default public.current_centre();
