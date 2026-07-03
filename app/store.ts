@@ -338,10 +338,13 @@ export const useDashboard = create<State & Actions>((set, get) => ({
         supabase.from('fees').update({ status: 'Paid', paid_date: new Date().toISOString().split('T')[0] })
           .eq('student_id', student.dbId).eq('status', 'Due').then(dbErr('mark fees paid', get().notify))
       } else {
-        // Reopen: marking a student Due again restores their fee record so the
-        // pending fee shows for them (and in fee history/reports) once more.
+        // Reopen ONLY fees marked paid today (undo for a mis-tap). Historical
+        // paid months must never flip back — that would corrupt fee history
+        // and the fees-collected report.
+        const today = new Date().toISOString().split('T')[0]
         supabase.from('fees').update({ status: 'Due', paid_date: null })
-          .eq('student_id', student.dbId).eq('status', 'Paid').then(dbErr('reopen fees', get().notify))
+          .eq('student_id', student.dbId).eq('status', 'Paid').eq('paid_date', today)
+          .then(dbErr('reopen fees', get().notify))
       }
     }
     get().notify(`${student.name}: ${newStatus}`)

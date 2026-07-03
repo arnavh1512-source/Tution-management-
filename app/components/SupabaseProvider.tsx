@@ -93,7 +93,20 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     ])
 
     const mappedTeachers = (teachers ?? []).map(mapTeacher)
-    const mappedStudents = (students ?? []).map(mapStudent)
+    // Per-student attendance % from the fetched attendance rows (mapStudent
+    // alone can't know it — without this every student shows 0%).
+    const attByStudent: Record<string, { p: number; t: number }> = {}
+    for (const a of (attendance ?? []) as any[]) {
+      const k = a.student_id as string
+      if (!attByStudent[k]) attByStudent[k] = { p: 0, t: 0 }
+      attByStudent[k].t++
+      if (a.status === 'Present') attByStudent[k].p++
+    }
+    const mappedStudents = (students ?? []).map((row: any) => {
+      const st = mapStudent(row)
+      const att = attByStudent[st.dbId ?? '']
+      return att && att.t > 0 ? { ...st, attendance: Math.round((att.p / att.t) * 100) } : st
+    })
     const subjectList = (subjects ?? []).map((s: any) => ({ name: s.name as string, dbId: s.id as string }))
     const subjectMap = Object.fromEntries(subjectList.map(s => [s.dbId, s.name]))
     const studentMap = Object.fromEntries(mappedStudents.map(s => [s.dbId, s]))
