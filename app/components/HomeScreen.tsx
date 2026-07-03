@@ -3,8 +3,9 @@
 import { useDashboard, initials, type Screen } from '../store'
 
 export function HomeScreen() {
-  const { role, go, schedule, students, teachers, branchesList, googleEmail, myName } = useDashboard()
+  const { role, go, schedule, students, teachers, branchesList, googleEmail, myName, staffList } = useDashboard()
   const isAdmin = role === 'admin'
+  const pendingCount = staffList.filter(s => s.status === 'pending').length
   const mainBranch = branchesList.find(b => b.main) ?? branchesList[0]
   const displayName = myName || googleEmail?.split('@')[0] || (isAdmin ? 'Admin' : 'Teacher')
   const ini = initials(displayName)
@@ -70,8 +71,9 @@ export function HomeScreen() {
           </div>
           <div className="flex-1">
             <div className="text-sm font-extrabold text-white">Admin Dashboard</div>
-            <div className="text-xs text-[#9aa9bd] mt-0.5">Approvals · staff · students · fees</div>
+            <div className="text-xs text-[#9aa9bd] mt-0.5">{pendingCount > 0 ? `${pendingCount} teacher${pendingCount > 1 ? 's' : ''} waiting for approval` : 'Approvals · staff · students · fees'}</div>
           </div>
+          {pendingCount > 0 && <span className="text-[11px] font-extrabold text-white bg-td-red rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center shrink-0">{pendingCount}</span>}
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7689" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         </button>
       )}

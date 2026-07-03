@@ -7,6 +7,28 @@ import { useDashboard, type Role, type StaffStatus, type Teacher, type Student, 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const { setAuth, loadTeachers, loadStudents, set } = useDashboard()
   const lastRefresh = useRef(0)
+  const role = useDashboard(s => s.role)
+  const staffStatus = useDashboard(s => s.staffStatus)
+
+  // Head only: keep the pending list warm and alert the instant a teacher
+  // requests access (realtime on profiles; RLS limits events to own centre).
+  useEffect(() => {
+    if (role !== 'admin' || staffStatus !== 'approved') return
+    useDashboard.getState().loadStaff()
+    const ch = supabase
+      .channel('pending-watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+        const st = useDashboard.getState()
+        const row = payload.new as { staff_status?: string; full_name?: string } | null
+        const was = (payload.old as { staff_status?: string } | null)?.staff_status
+        if (row?.staff_status === 'pending' && was !== 'pending') {
+          st.notify(`${row.full_name || 'A teacher'} is requesting access — check Staff access`)
+        }
+        st.loadStaff()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [role, staffStatus])
 
   // No Google session: a returning student may have a saved code; otherwise land on login.
   function resumeStudentOrLanding() {
