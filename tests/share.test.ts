@@ -87,4 +87,11 @@ describe('studentReportMessage', () => {
     const msg = studentReportMessage({ name: 'Neha', klass: 'Class 9', parent: '', fee_status: 'Paid', att_present: 0, att_total: 0, tests: 0, avg_pct: 0 })
     expect(msg).toContain('no classes marked this week')
   })
+
+  it('switches wording to monthly when days=30', () => {
+    const msg = studentReportMessage({ name: 'Neha', klass: 'Class 9', parent: '', fee_status: 'Paid', att_present: 20, att_total: 24, tests: 3, avg_pct: 75 }, 'My Centre', 30)
+    expect(msg).toContain('Monthly update')
+    expect(msg).toContain('Tests this month')
+    expect(msg).toContain('My Centre')
+  })
 })

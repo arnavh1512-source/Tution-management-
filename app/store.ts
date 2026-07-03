@@ -64,6 +64,7 @@ interface State {
   stuFeeHistory: FeeHistoryItem[]
   stuResults: StuResultItem[]
   stuAssignments: StuAssignmentItem[]
+  stuMonthly: { attPresent: number; attTotal: number; tests: number; avgPct: number } | null
   currentStudentDbId: string | null
   stuPendingFee: { amount: string; period: string; dueDate: string } | null
   searchQuery: string
@@ -102,9 +103,9 @@ interface Actions {
   loadMyCentre: () => Promise<void>
   renameCentre: (name: string) => Promise<void>
   loadStaff: () => Promise<void>
-  loadWeeklyReport: () => Promise<void>
-  loadStudentReports: () => Promise<void>
-  loadTeacherActivity: () => Promise<void>
+  loadWeeklyReport: (days?: number) => Promise<void>
+  loadStudentReports: (days?: number) => Promise<void>
+  loadTeacherActivity: (days?: number) => Promise<void>
   approveTeacher: (id: string) => Promise<void>
   rejectTeacher: (id: string) => Promise<void>
   grantHead: (id: string) => Promise<void>
@@ -135,7 +136,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   branchesList: [], meetingsList: [], assignmentsList: [],
   timetableData: {}, schedule: [], rankData: {}, subjects: [],
   stuReminders: [], stuNotifications: [], stuAttendanceLog: [],
-  stuFeeHistory: [], stuResults: [], stuAssignments: [],
+  stuFeeHistory: [], stuResults: [], stuAssignments: [], stuMonthly: null,
   currentStudentDbId: null, stuPendingFee: null, searchQuery: '', lastAdded: null,
 
   go: (screen, tab) => set({ screen, tab: (tab ?? screen) as Tab, origin: null }),
@@ -460,20 +461,20 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     set({ staffList: list })
   },
 
-  loadWeeklyReport: async () => {
-    const { data, error } = await supabase.rpc('weekly_branch_report')
+  loadWeeklyReport: async (days = 7) => {
+    const { data, error } = await supabase.rpc('weekly_branch_report', { p_days: days })
     if (error) { console.error('weekly report failed:', error); get().notify(`Could not load report: ${error.message}`); return }
     set({ weeklyReport: data as WeeklyReport })
   },
 
-  loadStudentReports: async () => {
-    const { data, error } = await supabase.rpc('weekly_student_reports')
+  loadStudentReports: async (days = 7) => {
+    const { data, error } = await supabase.rpc('weekly_student_reports', { p_days: days })
     if (error) { console.error('student reports failed:', error); get().notify(`Could not load reports: ${error.message}`); return }
     set({ studentReports: (data ?? []) as StudentReport[] })
   },
 
-  loadTeacherActivity: async () => {
-    const { data, error } = await supabase.rpc('weekly_teacher_activity')
+  loadTeacherActivity: async (days = 7) => {
+    const { data, error } = await supabase.rpc('weekly_teacher_activity', { p_days: days })
     if (error) { console.error('teacher activity failed:', error); get().notify(`Could not load activity: ${error.message}`); return }
     set({ teacherActivity: (data ?? []) as TeacherActivity[] })
   },
@@ -512,7 +513,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabaseUserId: null, staffStatus: 'none', headExists: false, staffList: [],
       teachers: [], students: [], branchesList: [], meetingsList: [], assignmentsList: [],
       timetableData: {}, schedule: [], rankData: {}, subjects: [],
-      stuReminders: [], stuNotifications: [], stuAttendanceLog: [], stuFeeHistory: [], stuResults: [], stuAssignments: [],
+      stuReminders: [], stuNotifications: [], stuAttendanceLog: [], stuFeeHistory: [], stuResults: [], stuAssignments: [], stuMonthly: null,
       currentStudentDbId: null, stuPendingFee: null,
     })
     get().notify('Signed out')
@@ -657,10 +658,24 @@ export function mapSnapshot(snap: any): Partial<State> {
     title: a.title ?? '', subject: a.subject ?? '', due: fmtDate(a.due), instructions: a.instructions ?? '',
   }))
 
+  // Monthly summary (last 30 days) — computed from raw ISO dates before any
+  // display formatting, so the student's home card is always current.
+  const cutoff = Date.now() - 30 * 86400000
+  const monthAtt = attendance.filter((a: any) => a.date && new Date(a.date).getTime() >= cutoff)
+  const monthResults = (snap.results ?? []).filter((r: any) => r.date && new Date(r.date).getTime() >= cutoff)
+  const mMarks = monthResults.reduce((acc: number, r: any) => acc + (r.marks ?? 0), 0)
+  const mTotals = monthResults.reduce((acc: number, r: any) => acc + (r.total ?? 0), 0)
+  const stuMonthly = {
+    attPresent: monthAtt.filter((a: any) => a.status === 'Present').length,
+    attTotal: monthAtt.length,
+    tests: monthResults.length,
+    avgPct: mTotals > 0 ? Math.round((mMarks / mTotals) * 100) : 0,
+  }
+
   return {
     students: [student], currentStudentDbId: student.dbId ?? null,
     stuAttendanceLog, stuResults, stuFeeHistory, stuPendingFee,
     stuNotifications, stuReminders: stuNotifications.slice(0, 3),
-    teachers, rankData, timetableData, stuAssignments,
+    teachers, rankData, timetableData, stuAssignments, stuMonthly,
   }
 }

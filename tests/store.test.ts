@@ -86,6 +86,27 @@ describe('mapSnapshot', () => {
     expect(empty.students?.[0].attendance).toBe(0)
   })
 
+  it('computes the 30-day monthly summary from raw dates', () => {
+    const recent = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]
+    const old = new Date(Date.now() - 60 * 86400000).toISOString().split('T')[0]
+    const r = mapSnapshot({
+      student: { dbId: 'd', code: 'c' },
+      attendance: [
+        { date: recent, status: 'Present' },
+        { date: recent, status: 'Absent' },
+        { date: old, status: 'Present' }, // outside the 30-day window
+      ],
+      results: [
+        { subject: 'Maths', test: 'T1', date: recent, marks: 40, total: 50 },
+        { subject: 'Maths', test: 'T0', date: old, marks: 10, total: 50 },
+      ],
+    })
+    expect(r.stuMonthly?.attPresent).toBe(1)
+    expect(r.stuMonthly?.attTotal).toBe(2)
+    expect(r.stuMonthly?.tests).toBe(1)
+    expect(r.stuMonthly?.avgPct).toBe(80)
+  })
+
   it('maps class assignments for the student', () => {
     const r = mapSnapshot({
       student: { dbId: 'd', code: 'c', klass: 'Class 10-B' },

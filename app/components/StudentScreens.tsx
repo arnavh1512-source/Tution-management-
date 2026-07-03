@@ -5,7 +5,7 @@ import { useDashboard, GRADIENTS, initials, av, stuGrade } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function StuHomeScreen() {
-  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, loadStudentByCode } = useDashboard()
+  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, loadStudentByCode, stuMonthly } = useDashboard()
   const [linkCode, setLinkCode] = useState('')
   const me = students.find(s => s.dbId === currentStudentDbId)
 
@@ -82,6 +82,26 @@ export function StuHomeScreen() {
           )}
         </button>
       </div>
+
+      {stuMonthly && (stuMonthly.attTotal > 0 || stuMonthly.tests > 0) && (
+        <div className="rounded-[18px] p-4 mb-3.5 text-white" style={{ background: 'linear-gradient(135deg,#2fa36b,#4db786)' }}>
+          <div className="text-[11px] font-bold opacity-85 mb-2.5">THIS MONTH</div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div className="text-[19px] font-extrabold leading-none">{stuMonthly.attTotal > 0 ? `${Math.round((stuMonthly.attPresent / stuMonthly.attTotal) * 100)}%` : '—'}</div>
+              <div className="text-[10.5px] opacity-80 mt-1 font-semibold">Attendance</div>
+            </div>
+            <div>
+              <div className="text-[19px] font-extrabold leading-none">{stuMonthly.tests}</div>
+              <div className="text-[10.5px] opacity-80 mt-1 font-semibold">Tests</div>
+            </div>
+            <div>
+              <div className="text-[19px] font-extrabold leading-none">{stuMonthly.tests > 0 ? `${stuMonthly.avgPct}%` : '—'}</div>
+              <div className="text-[10.5px] opacity-80 mt-1 font-semibold">Avg score</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2.5 mb-5">
         <button onClick={() => go('stuTimetable', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-[15px] cursor-pointer">

@@ -27,30 +27,32 @@ const inr = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
 
 // Formats the weekly branch report as a WhatsApp-friendly message (*bold* via
 // asterisks, • bullets). Sent by the head to themselves or a co-owner.
-export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second Skool'): string {
+export function weeklyReportMessage(r: WeeklyReport, centreName = 'Second Skool', days = 7): string {
+  const period = days === 7 ? 'week' : 'month'
   const date = new Date(r.generated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-  const lines: string[] = [`*${centreName} — Weekly Report*`, `As of ${date}`, '']
+  const lines: string[] = [`*${centreName} — ${days === 7 ? 'Weekly' : 'Monthly'} Report*`, `As of ${date}`, '']
   if (r.branches.length === 0) lines.push('No branches configured yet.')
   for (const b of r.branches) {
     lines.push(`*${b.name}*`)
-    lines.push(`• Students: ${b.students}${b.new_students ? ` (+${b.new_students} new this week)` : ''}`)
+    lines.push(`• Students: ${b.students}${b.new_students ? ` (+${b.new_students} new this ${period})` : ''}`)
     lines.push(`• Staff: ${b.staff}`)
-    lines.push(`• Attendance (7d): ${b.att_pct}%`)
-    lines.push(`• Fees collected (7d): ${inr(b.fees_collected)}`)
+    lines.push(`• Attendance (${days}d): ${b.att_pct}%`)
+    lines.push(`• Fees collected (${days}d): ${inr(b.fees_collected)}`)
     lines.push(`• Fees pending: ${inr(b.fees_pending)}`)
     lines.push('')
   }
   if (r.unassigned_students) lines.push(`Unassigned students: ${r.unassigned_students}`)
-  lines.push(`Tests conducted this week: ${r.tests_this_week}`)
+  lines.push(`Tests conducted this ${period}: ${r.tests_this_week}`)
   return lines.join('\n')
 }
 
-// A per-student weekly progress note for the parent's WhatsApp.
-export function studentReportMessage(s: StudentReport, centreName = 'Second Skool'): string {
+// A per-student progress note for the parent's WhatsApp (weekly or monthly).
+export function studentReportMessage(s: StudentReport, centreName = 'Second Skool', days = 7): string {
+  const period = days === 7 ? 'week' : 'month'
   const attPct = s.att_total > 0 ? Math.round((s.att_present / s.att_total) * 100) : null
-  const lines: string[] = [`*${centreName} — Weekly update*`, `*${s.name}* · ${s.klass}`, '']
-  lines.push(`• Attendance: ${attPct === null ? 'no classes marked this week' : `${attPct}% (${s.att_present}/${s.att_total})`}`)
-  lines.push(`• Tests this week: ${s.tests}${s.tests > 0 ? ` (avg ${s.avg_pct}%)` : ''}`)
+  const lines: string[] = [`*${centreName} — ${days === 7 ? 'Weekly' : 'Monthly'} update*`, `*${s.name}* · ${s.klass}`, '']
+  lines.push(`• Attendance: ${attPct === null ? `no classes marked this ${period}` : `${attPct}% (${s.att_present}/${s.att_total})`}`)
+  lines.push(`• Tests this ${period}: ${s.tests}${s.tests > 0 ? ` (avg ${s.avg_pct}%)` : ''}`)
   lines.push(`• Fees: ${s.fee_status}`)
   lines.push('')
   lines.push('Reply here if you have any questions. Thank you!')
