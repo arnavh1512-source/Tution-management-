@@ -101,7 +101,6 @@ interface Actions {
   joinCentre: (code: string) => Promise<void>
   loadMyCentre: () => Promise<void>
   renameCentre: (name: string) => Promise<void>
-  requestHead: () => Promise<void>
   loadStaff: () => Promise<void>
   loadWeeklyReport: () => Promise<void>
   loadStudentReports: () => Promise<void>
@@ -442,12 +441,6 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (error) { get().notify('Could not rename — only the centre owner can'); return }
     set({ centreName: trimmed })
     get().notify('Centre renamed')
-  },
-
-  requestHead: async () => {
-    const { error } = await supabase.rpc('request_head')
-    if (error) { get().notify('Could not send request'); return }
-    get().notify('Request sent to the head teacher')
   },
 
   loadStaff: async () => {

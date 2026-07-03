@@ -307,3 +307,15 @@ begin
   update public.profiles set role='student', staff_status='rejected', head_requested=false
     where id = p_id and centre_id = public.current_centre();
 end; $$;
+
+-- 11) Advisor hardening -------------------------------------------------------
+-- Anon never needs these (only signed-in flows call them). get_student_snapshot
+-- and update_student_self intentionally KEEP anon access — code-only students.
+revoke execute on function public.current_centre() from anon;
+revoke execute on function public.head_exists() from anon;
+
+-- Legacy single-tenant registration surface, superseded by create/join_centre.
+drop function if exists public.register_as_head();
+drop function if exists public.register_as_teacher();
+drop function if exists public.request_head();
+drop function if exists public.list_staff();
