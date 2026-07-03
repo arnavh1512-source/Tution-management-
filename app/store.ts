@@ -456,7 +456,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       .select('id, full_name, email, role, staff_status, head_requested')
       .neq('staff_status', 'none')
       .order('created_at', { ascending: false })
-    if (error) { console.error('loadStaff failed:', error); get().notify(`Could not load staff: ${error.message}`); return }
+    if (error) { console.error('loadStaff failed:', error.message); get().notify(`Could not load staff: ${error.message}`); return }
     const list: StaffMember[] = (data ?? []).map((r: Record<string, unknown>) => ({
       id: r.id as string, name: r.full_name as string, email: (r.email as string) ?? '',
       role: r.role as string, status: r.staff_status as StaffStatus, headRequested: !!r.head_requested,
@@ -466,19 +466,19 @@ export const useDashboard = create<State & Actions>((set, get) => ({
 
   loadWeeklyReport: async (days = 7) => {
     const { data, error } = await supabase.rpc('weekly_branch_report', { p_days: days })
-    if (error) { console.error('weekly report failed:', error); get().notify(`Could not load report: ${error.message}`); return }
+    if (error) { console.error('weekly report failed:', error.message); get().notify(`Could not load report: ${error.message}`); return }
     set({ weeklyReport: data as WeeklyReport })
   },
 
   loadStudentReports: async (days = 7) => {
     const { data, error } = await supabase.rpc('weekly_student_reports', { p_days: days })
-    if (error) { console.error('student reports failed:', error); get().notify(`Could not load reports: ${error.message}`); return }
+    if (error) { console.error('student reports failed:', error.message); get().notify(`Could not load reports: ${error.message}`); return }
     set({ studentReports: (data ?? []) as StudentReport[] })
   },
 
   loadTeacherActivity: async (days = 7) => {
     const { data, error } = await supabase.rpc('weekly_teacher_activity', { p_days: days })
-    if (error) { console.error('teacher activity failed:', error); get().notify(`Could not load activity: ${error.message}`); return }
+    if (error) { console.error('teacher activity failed:', error.message); get().notify(`Could not load activity: ${error.message}`); return }
     set({ teacherActivity: (data ?? []) as TeacherActivity[] })
   },
 
@@ -556,9 +556,16 @@ export const useDashboard = create<State & Actions>((set, get) => ({
 // characters (0/O, 1/I/L) so codes are easy to read aloud and hard to guess.
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 export function genStudentCode(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(8))
+  // Rejection sampling: only accept bytes below the largest multiple of the
+  // alphabet size, so every character is uniformly likely (no modulo bias).
+  const max = 256 - (256 % CODE_ALPHABET.length)
   let s = ''
-  for (const b of bytes) s += CODE_ALPHABET[b % CODE_ALPHABET.length]
+  while (s.length < 8) {
+    const bytes = crypto.getRandomValues(new Uint8Array(16))
+    for (const b of bytes) {
+      if (b < max && s.length < 8) s += CODE_ALPHABET[b % CODE_ALPHABET.length]
+    }
+  }
   return `TUT-${s}`
 }
 
