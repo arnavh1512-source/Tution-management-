@@ -402,7 +402,12 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     const trimmed = code.trim()
     if (trimmed.length < 4) { if (navigate) get().notify('Enter your code'); return false }
     const { data, error } = await supabase.rpc('get_student_snapshot', { p_code: trimmed })
-    if (error || !data) { if (navigate) get().notify('Invalid code — check with your teacher'); return false }
+    if (error || !data) {
+      // Surface the rate-limit message; otherwise a generic invalid-code note.
+      const msg = error?.message?.includes('Too many') ? error.message : 'Invalid code — check with your teacher'
+      if (navigate) get().notify(msg)
+      return false
+    }
     if (typeof window !== 'undefined') localStorage.setItem('student_code', trimmed)
     const patch: Partial<State> = mapSnapshot(data)
     // Only navigate on the initial load; a background (focus) refresh just
