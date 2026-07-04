@@ -7,7 +7,7 @@ const dbErr = (op: string, notify: (m: string) => void) =>
 export type Screen =
   | 'home' | 'timetable' | 'attendance' | 'results' | 'assign' | 'reminder'
   | 'students' | 'editStudent' | 'addStudent' | 'teachers' | 'addTeacher'
-  | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'notes' | 'more' | 'subscription'
+  | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'notes' | 'more'
   | 'admin' | 'staffApprovals' | 'staffProfile' | 'reports' | 'register' | 'pending' | 'denied'
   | 'stuHome' | 'stuAttendance' | 'stuResults' | 'stuRanking' | 'stuTeachers'
   | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile' | 'stuTimetable' | 'stuAssignments' | 'stuNotes'

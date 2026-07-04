@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useDashboard, PLAN_META, PLAN_PERKS, REMINDER_TEMPLATES, initials, av, feeColor, type Screen } from '../store'
+import { useDashboard, REMINDER_TEMPLATES, initials, av, feeColor, type Screen } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function FeesScreen() {
@@ -398,61 +398,3 @@ export function StaffProfileScreen() {
   )
 }
 
-export function SubscriptionScreen() {
-  const { plan: activePlan, back, set, notify } = useDashboard()
-  const current = PLAN_META[activePlan]
-  const planKeys = ['Monthly', 'Half-yearly', 'Yearly']
-
-  return (
-    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <ScreenHeader title="Subscription" onBack={back} />
-
-      <div className="rounded-[22px] p-5 text-white mb-3.5" style={{ background: 'linear-gradient(135deg,#1a2332,#2a3654)' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs opacity-70 font-semibold">Current plan</div>
-            <div className="text-[22px] font-extrabold mt-[3px]">{current.name}</div>
-          </div>
-          <span className="text-[11px] font-bold bg-white/15 py-1.5 px-3 rounded-[20px]">Active</span>
-        </div>
-        <div className="text-[12.5px] opacity-80 mt-2.5">Renews on {current.renews} · {current.price}</div>
-      </div>
-
-      <div className="text-xs text-td-subtle font-semibold mb-[18px] leading-relaxed">Billing applies to staff accounts only. Your students always access attendance, results &amp; reminders for free.</div>
-
-      <div className="text-base font-extrabold text-td-dark mb-[13px]">Choose a plan</div>
-      <div className="flex flex-col gap-3">
-        {planKeys.map(k => {
-          const m = PLAN_META[k]
-          const active = k === activePlan
-          return (
-            <div key={k} className="bg-white border-2 rounded-[20px] p-[17px] relative" style={{ borderColor: active ? '#2a6fdb' : '#e6eaf2' }}>
-              {k === 'Yearly' && <span className="absolute -top-2.5 right-4 text-[10.5px] font-extrabold text-white bg-td-green py-1 px-[11px] rounded-[20px]">Best value</span>}
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-base font-extrabold text-td-dark">{m.name}</div>
-                <span className="text-xl font-extrabold text-td-dark">{m.price}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="text-[12.5px] text-td-muted">{m.permonth}</div>
-                {m.save && <span className="text-[11.5px] font-bold text-td-green">{m.save}</span>}
-              </div>
-              <button onClick={() => { if (!active) { set({ plan: k }); notify(`Switched to ${m.name} plan`) } }} className="w-full mt-3.5 border-none text-sm font-extrabold p-[13px] rounded-[13px] cursor-pointer" style={{ background: active ? '#eef1f7' : '#2a6fdb', color: active ? '#9aa4b6' : '#fff' }}>
-                {active ? 'Current plan' : `Switch to ${m.name}`}
-              </button>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="flex flex-col gap-[11px] mt-[22px] bg-white border border-td-border rounded-[18px] p-[17px]">
-        <div className="text-[13px] font-extrabold text-td-dark mb-0.5">All plans include</div>
-        {PLAN_PERKS.map(k => (
-          <div key={k} className="flex items-center gap-[11px]">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2fa36b" strokeWidth="2.6" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span className="text-[13px] text-td-text">{k}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
