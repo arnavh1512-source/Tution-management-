@@ -402,9 +402,18 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   },
 
   deleteSubject: (dbId) => {
-    set((s) => ({ subjects: s.subjects.filter(x => x.dbId !== dbId) }))
+    const name = get().subjects.find(x => x.dbId === dbId)?.name
+    // Remove everywhere: the subject row (DB cascades its tests/results;
+    // assignments keep the record but drop the subject label) plus any
+    // timetable periods that reference it by name.
+    set((s) => ({
+      subjects: s.subjects.filter(x => x.dbId !== dbId),
+      timetableData: Object.fromEntries(Object.entries(s.timetableData).map(([d, rows]) => [d, rows.filter(p => p[2] !== name)])),
+      schedule: s.schedule.filter(c => c.subject !== name),
+    }))
     supabase.from('subjects').delete().eq('id', dbId).then(dbErr('delete subject', get().notify))
-    get().notify('Subject removed')
+    if (name) supabase.from('timetable').delete().eq('subject', name).then(dbErr('remove periods', get().notify))
+    get().notify('Subject removed everywhere')
   },
 
   loadNotes: async () => {

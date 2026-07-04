@@ -19,7 +19,6 @@ function ScreenLoading() {
 const dyn = (importFn: () => Promise<Record<string, any>>, name: string) =>
   dynamic(() => importFn().then(m => ({ default: m[name] })), { loading: ScreenLoading })
 
-const AdminPanel = dyn(() => import('./components/AdminScreens'), 'AdminPanel')
 const StaffApprovalsScreen = dyn(() => import('./components/AdminScreens'), 'StaffApprovalsScreen')
 const ReportsScreen = dyn(() => import('./components/AdminScreens'), 'ReportsScreen')
 
@@ -106,7 +105,6 @@ function ScreenRouter() {
     case 'notes': return <NotesScreen />
     case 'more': return <MoreScreen />
     case 'staffProfile': return <StaffProfileScreen />
-    case 'admin': return <AdminPanel />
     case 'staffApprovals': return <StaffApprovalsScreen />
     case 'reports': return <ReportsScreen />
     case 'register': return <RegisterScreen />

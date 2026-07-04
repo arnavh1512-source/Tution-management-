@@ -85,7 +85,7 @@ create table if not exists public.subjects (
 
 create table if not exists public.tests (
   id uuid primary key default uuid_generate_v4(),
-  name text not null, subject_id uuid references public.subjects(id),
+  name text not null, subject_id uuid references public.subjects(id) on delete cascade,
   class text not null, max_marks int not null default 50,
   date date not null default current_date,
   created_by uuid references public.teachers(id),
@@ -118,7 +118,7 @@ create table if not exists public.attendance (
 
 create table if not exists public.assignments (
   id uuid primary key default uuid_generate_v4(),
-  title text not null, subject_id uuid references public.subjects(id),
+  title text not null, subject_id uuid references public.subjects(id) on delete set null,
   class text not null, due_date date not null, instructions text,
   created_by uuid references public.teachers(id),
   recorded_by uuid references public.profiles(id) default auth.uid(),
@@ -232,6 +232,14 @@ alter table public.timetable     add column if not exists centre_id uuid referen
 alter table public.attendance    add column if not exists recorded_by uuid references public.profiles(id) default auth.uid();
 alter table public.tests         add column if not exists recorded_by uuid references public.profiles(id) default auth.uid();
 alter table public.assignments   add column if not exists recorded_by uuid references public.profiles(id) default auth.uid();
+
+-- Subject deletes must propagate: a removed subject takes its tests/results
+-- with it (cascade); assignments survive but drop the subject label (set null).
+alter table public.tests alter column subject_id drop not null;
+alter table public.tests drop constraint if exists tests_subject_id_fkey;
+alter table public.tests add constraint tests_subject_id_fkey foreign key (subject_id) references public.subjects(id) on delete cascade;
+alter table public.assignments drop constraint if exists assignments_subject_id_fkey;
+alter table public.assignments add constraint assignments_subject_id_fkey foreign key (subject_id) references public.subjects(id) on delete set null;
 
 -- ─── HELPER FUNCTIONS ────────────────────────────────────────────────────────
 create or replace function public.is_head()

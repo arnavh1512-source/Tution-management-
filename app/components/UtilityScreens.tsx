@@ -282,7 +282,7 @@ export function SubjectsScreen() {
             <div key={s.name} className="bg-white border border-td-border rounded-2xl p-[13px] px-[15px] flex items-center gap-[13px]">
               <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-white font-bold text-[14px]" style={{ background: av(i) }}>{s.name[0]}</div>
               <div className="flex-1 text-[14px] font-bold text-td-dark">{s.name}</div>
-              {s.dbId && <button onClick={() => deleteSubject(s.dbId!)} className="border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-[12px] font-bold py-1.5 px-3 rounded-[11px] cursor-pointer">Remove</button>}
+              {s.dbId && <button onClick={() => { if (window.confirm(`Remove "${s.name}" everywhere? Its tests, results and timetable periods will be deleted too.`)) deleteSubject(s.dbId!) }} className="border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-[12px] font-bold py-1.5 px-3 rounded-[11px] cursor-pointer">Remove</button>}
             </div>
           ))}
         </div>
@@ -291,23 +291,46 @@ export function SubjectsScreen() {
   )
 }
 
+type MoreItem = { icon: string; label: string; tint: string; screen: Screen; badge?: number }
+
 export function MoreScreen() {
-  const { go, signOut, role, myName, googleEmail } = useDashboard()
+  const { go, signOut, role, myName, googleEmail, staffList, loadStaff } = useDashboard()
   const isAdmin = role === 'admin'
   const profileName = myName || googleEmail?.split('@')[0] || (isAdmin ? 'Head teacher' : 'Teacher')
-  const allItems: { icon: string; label: string; tint: string; screen: Screen; headOnly?: boolean }[] = [
+
+  // Head: keep the approvals badge fresh (Admin Dashboard now lives here).
+  useEffect(() => { if (isAdmin) loadStaff() }, [isAdmin, loadStaff])
+  const pendingCount = staffList.filter(s => s.status === 'pending').length
+
+  const daily: MoreItem[] = [
     { icon: '✅', label: 'Mark attendance', tint: '#e7f5ee', screen: 'attendance' },
     { icon: '📊', label: 'Enter results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignments', tint: '#fcf3e3', screen: 'assign' },
     { icon: '📄', label: 'Study material', tint: '#eef0fc', screen: 'notes' },
     { icon: '🔔', label: 'Send reminders', tint: '#fdecea', screen: 'reminder' },
-    { icon: '💳', label: 'Fees & alerts', tint: '#e7f5ee', screen: 'fees', headOnly: true },
-    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
-    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings', headOnly: true },
-    { icon: '🏢', label: 'Branches', tint: '#eef0fc', screen: 'branches', headOnly: true },
-    { icon: '📖', label: 'Subjects', tint: '#eaf1fc', screen: 'subjects', headOnly: true },
   ]
-  const items = allItems.filter(m => isAdmin || !m.headOnly)
+  const management: MoreItem[] = [
+    { icon: '🛡️', label: 'Staff access & approvals', tint: '#eef0fc', screen: 'staffApprovals', badge: pendingCount },
+    { icon: '📈', label: 'Weekly report', tint: '#e7f5ee', screen: 'reports' },
+    { icon: '💳', label: 'Fees & alerts', tint: '#e7f5ee', screen: 'fees' },
+    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings' },
+    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings' },
+    { icon: '🏢', label: 'Branches', tint: '#eef0fc', screen: 'branches' },
+    { icon: '📖', label: 'Subjects', tint: '#eaf1fc', screen: 'subjects' },
+  ]
+
+  const card = (list: MoreItem[]) => (
+    <div className="bg-white border border-td-border rounded-[20px] overflow-hidden">
+      {list.map(m => (
+        <button key={m.label} onClick={() => go(m.screen, 'more')} className="w-full text-left border-none bg-transparent border-b border-[#f0f2f7] p-[15px] px-[17px] flex items-center gap-3.5 cursor-pointer last:border-b-0">
+          <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-lg" style={{ background: m.tint }}>{m.icon}</div>
+          <div className="flex-1 text-sm font-bold text-td-dark">{m.label}</div>
+          {!!m.badge && m.badge > 0 && <span className="text-[11px] font-extrabold text-white bg-td-red rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">{m.badge}</span>}
+          <ChevronRight />
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -322,15 +345,14 @@ export function MoreScreen() {
         <ChevronRight />
       </button>
 
-      <div className="bg-white border border-td-border rounded-[20px] overflow-hidden">
-        {items.map(m => (
-          <button key={m.label} onClick={() => go(m.screen, 'more')} className="w-full text-left border-none bg-transparent border-b border-[#f0f2f7] p-[15px] px-[17px] flex items-center gap-3.5 cursor-pointer last:border-b-0">
-            <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-lg" style={{ background: m.tint }}>{m.icon}</div>
-            <div className="flex-1 text-sm font-bold text-td-dark">{m.label}</div>
-            <ChevronRight />
-          </button>
-        ))}
-      </div>
+      {card(daily)}
+
+      {isAdmin && (
+        <>
+          <div className="text-[13px] font-extrabold text-td-muted mt-5 mb-[11px] px-1">Management</div>
+          {card(management)}
+        </>
+      )}
 
       <button onClick={signOut} className="w-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-sm font-extrabold p-[15px] rounded-2xl cursor-pointer mt-4 flex items-center justify-center gap-[9px]">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8553c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>

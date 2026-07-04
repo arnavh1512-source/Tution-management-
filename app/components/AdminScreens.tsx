@@ -7,69 +7,6 @@ import { supabase } from '../lib/supabase'
 import { whatsappShareUrl, weeklyReportMessage, studentReportMessage } from '../lib/share'
 import { useState } from 'react'
 
-export function AdminPanel() {
-  const { back, goFrom, exitAdmin, students, teachers, googleEmail, myName, staffList, loadStaff } = useDashboard()
-
-  // Keep the pending-approvals badge fresh whenever the head opens the dashboard.
-  useEffect(() => { loadStaff() }, [loadStaff])
-  const pendingCount = staffList.filter(s => s.status === 'pending').length
-
-  const items = [
-    { icon: '📈', label: 'Weekly report', sub: 'Per-branch summary · share on WhatsApp', tint: '#e7f5ee', go: () => goFrom('reports', 'home', 'admin') },
-    { icon: '🛡️', label: 'Staff access & approvals', sub: 'Approve teachers · grant head access', tint: '#eef0fc', badge: pendingCount, go: () => goFrom('staffApprovals', 'teachers', 'admin') },
-    { icon: '👥', label: 'Teacher profiles', sub: 'Records shown to students', tint: '#eaf1fc', go: () => goFrom('teachers', 'teachers', 'admin') },
-    { icon: '🎓', label: 'Manage students', sub: 'Enrol & edit student records', tint: '#e7f5ee', go: () => goFrom('students', 'students', 'admin') },
-    { icon: '💳', label: 'Fees & collections', sub: 'Track payments & send alerts', tint: '#fdecea', go: () => goFrom('fees', 'home', 'admin') },
-    { icon: '🏆', label: 'Publish rankings', sub: 'Subject-wise leaderboards', tint: '#fcf3e3', go: () => goFrom('rankings', 'home', 'admin') },
-    { icon: '📅', label: 'Meetings', sub: 'Staff & parent meetings', tint: '#eaf1fc', go: () => goFrom('meetings', 'home', 'admin') },
-    { icon: '🏢', label: 'Branches', sub: 'Manage all centres', tint: '#eef0fc', go: () => goFrom('branches', 'home', 'admin') },
-    { icon: '📖', label: 'Subjects', sub: 'Add & manage subjects', tint: '#eaf1fc', go: () => goFrom('subjects', 'home', 'admin') },
-  ]
-
-  return (
-    <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
-      <div className="flex items-center justify-between mb-2">
-        <ScreenHeader title="Admin Dashboard" onBack={back} right={
-          <button onClick={exitAdmin} className="border-none bg-[#eef1f7] text-td-muted text-xs font-bold py-[9px] px-[13px] rounded-[13px] cursor-pointer">Done</button>
-        } />
-      </div>
-
-      <div className="inline-flex items-center gap-[7px] bg-[#e7f5ee] rounded-[20px] py-[7px] px-[13px] mt-1.5 mb-5">
-        <span className="w-2 h-2 rounded-full bg-td-green" />
-        <span className="text-xs font-bold text-td-green">Head teacher · {myName || googleEmail?.split('@')[0] || 'Admin'}</span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-[11px] mb-[22px]">
-        {[
-          { v: String(students.length), l: 'Total students' },
-          { v: String(teachers.length), l: 'Teacher profiles' },
-          { v: String(students.filter(s => s.feeStatus === 'Paid').length), l: 'Fees clear', c: '#2fa36b' },
-          { v: String(students.filter(s => s.feeStatus !== 'Paid').length), l: 'Fees pending', c: '#e8553c' },
-        ].map(s => (
-          <div key={s.l} className="bg-white border border-td-border rounded-[18px] p-4">
-            <div className="text-2xl font-extrabold" style={{ color: s.c || '#1a2332' }}>{s.v}</div>
-            <div className="text-[11px] text-td-muted font-semibold mt-[5px]">{s.l}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="text-base font-extrabold text-td-dark mb-[13px]">Manage</div>
-      <div className="bg-white border border-td-border rounded-[20px] overflow-hidden">
-        {items.map(m => (
-          <button key={m.label} onClick={m.go} className="w-full text-left border-none bg-transparent border-b border-[#f0f2f7] p-[15px] px-[17px] flex items-center gap-3.5 cursor-pointer last:border-b-0">
-            <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center text-lg" style={{ background: m.tint }}>{m.icon}</div>
-            <div className="flex-1">
-              <div className="text-sm font-bold text-td-dark">{m.label}</div>
-              <div className="text-[11.5px] text-td-subtle mt-0.5">{m.sub}</div>
-            </div>
-            {!!m.badge && m.badge > 0 && <span className="text-[11px] font-extrabold text-white bg-td-red rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">{m.badge}</span>}
-            <ChevronRight />
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export function StaffApprovalsScreen() {
   const { back, staffList, loadStaff, loadMyCentre, joinCode, centreName, approveTeacher, rejectTeacher, grantHead, removeStaff, supabaseUserId, notify } = useDashboard()

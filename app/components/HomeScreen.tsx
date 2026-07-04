@@ -3,9 +3,8 @@
 import { useDashboard, initials, type Screen } from '../store'
 
 export function HomeScreen() {
-  const { role, go, schedule, students, teachers, branchesList, googleEmail, myName, staffList } = useDashboard()
+  const { role, go, schedule, students, teachers, branchesList, googleEmail, myName } = useDashboard()
   const isAdmin = role === 'admin'
-  const pendingCount = staffList.filter(s => s.status === 'pending').length
   const mainBranch = branchesList.find(b => b.main) ?? branchesList[0]
   const displayName = myName || googleEmail?.split('@')[0] || (isAdmin ? 'Admin' : 'Teacher')
   const ini = initials(displayName)
@@ -22,8 +21,6 @@ export function HomeScreen() {
     { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
   ]
   const quickActions = allActions.filter(a => isAdmin || !a.headOnly)
-
-  const openAdmin = () => go('admin')
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -63,20 +60,6 @@ export function HomeScreen() {
           <div className="text-[11px] text-td-muted mt-1.5 font-semibold">Students</div>
         </div>
       </div>
-
-      {isAdmin && (
-        <button onClick={openAdmin} className="w-full text-left border-none cursor-pointer bg-td-dark rounded-[18px] p-[15px] flex items-center gap-[13px] mb-6">
-          <div className="w-[42px] h-[42px] rounded-[13px] bg-white/[.12] flex items-center justify-center shrink-0">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-extrabold text-white">Admin Dashboard</div>
-            <div className="text-xs text-[#9aa9bd] mt-0.5">{pendingCount > 0 ? `${pendingCount} teacher${pendingCount > 1 ? 's' : ''} waiting for approval` : 'Approvals · staff · students · fees'}</div>
-          </div>
-          {pendingCount > 0 && <span className="text-[11px] font-extrabold text-white bg-td-red rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center shrink-0">{pendingCount}</span>}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7689" strokeWidth="2.4" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        </button>
-      )}
 
       <div className="text-base font-extrabold text-td-dark mb-[13px]">Quick actions</div>
       <div className="grid grid-cols-4 gap-[11px] mb-[26px]">
