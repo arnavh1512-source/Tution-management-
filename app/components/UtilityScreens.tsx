@@ -299,6 +299,7 @@ export function MoreScreen() {
     { icon: '✅', label: 'Mark attendance', tint: '#e7f5ee', screen: 'attendance' },
     { icon: '📊', label: 'Enter results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignments', tint: '#fcf3e3', screen: 'assign' },
+    { icon: '📄', label: 'Study material', tint: '#eef0fc', screen: 'notes' },
     { icon: '🔔', label: 'Send reminders', tint: '#fdecea', screen: 'reminder' },
     { icon: '💳', label: 'Fees & alerts', tint: '#e7f5ee', screen: 'fees', headOnly: true },
     { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },

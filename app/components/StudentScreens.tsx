@@ -103,16 +103,18 @@ export function StuHomeScreen() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2.5 mb-5">
-        <button onClick={() => go('stuTimetable', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-[15px] cursor-pointer">
-          <div className="w-[42px] h-[42px] rounded-[13px] bg-[#eef0fc] flex items-center justify-center text-xl mb-2.5">🗓️</div>
-          <div className="text-[13.5px] font-extrabold text-td-dark">Timetable</div>
-          <div className="text-[11px] text-td-muted mt-0.5">Class schedule</div>
+      <div className="grid grid-cols-3 gap-2.5 mb-5">
+        <button onClick={() => go('stuTimetable', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-3 cursor-pointer">
+          <div className="w-[38px] h-[38px] rounded-[12px] bg-[#eef0fc] flex items-center justify-center text-lg mb-2">🗓️</div>
+          <div className="text-[12.5px] font-extrabold text-td-dark leading-tight">Timetable</div>
         </button>
-        <button onClick={() => go('stuAssignments', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-[15px] cursor-pointer">
-          <div className="w-[42px] h-[42px] rounded-[13px] bg-[#fcf3e3] flex items-center justify-center text-xl mb-2.5">📚</div>
-          <div className="text-[13.5px] font-extrabold text-td-dark">Homework</div>
-          <div className="text-[11px] text-td-muted mt-0.5">Assignments</div>
+        <button onClick={() => go('stuAssignments', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-3 cursor-pointer">
+          <div className="w-[38px] h-[38px] rounded-[12px] bg-[#fcf3e3] flex items-center justify-center text-lg mb-2">📚</div>
+          <div className="text-[12.5px] font-extrabold text-td-dark leading-tight">Homework</div>
+        </button>
+        <button onClick={() => go('stuNotes', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-3 cursor-pointer">
+          <div className="w-[38px] h-[38px] rounded-[12px] bg-[#e7f5ee] flex items-center justify-center text-lg mb-2">📄</div>
+          <div className="text-[12.5px] font-extrabold text-td-dark leading-tight">Material</div>
         </button>
       </div>
 

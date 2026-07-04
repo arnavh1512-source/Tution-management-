@@ -56,6 +56,8 @@ const StuProfileScreen = dyn(() => import('./components/StudentScreens'), 'StuPr
 const StuEditProfileScreen = dyn(() => import('./components/StudentScreens'), 'StuEditProfileScreen')
 const StuTimetableScreen = dyn(() => import('./components/StudentScreens'), 'StuTimetableScreen')
 const StuAssignmentsScreen = dyn(() => import('./components/StudentScreens'), 'StuAssignmentsScreen')
+const NotesScreen = dyn(() => import('./components/NotesScreens'), 'NotesScreen')
+const StuNotesScreen = dyn(() => import('./components/NotesScreens'), 'StuNotesScreen')
 
 export default function Page() {
   return (
@@ -102,6 +104,7 @@ function ScreenRouter() {
     case 'rankings': return <RankingsScreen />
     case 'branches': return <BranchesScreen />
     case 'subjects': return <SubjectsScreen />
+    case 'notes': return <NotesScreen />
     case 'more': return <MoreScreen />
     case 'staffProfile': return <StaffProfileScreen />
     case 'subscription': return <SubscriptionScreen />
@@ -123,6 +126,7 @@ function ScreenRouter() {
     case 'stuEditProfile': return <StuEditProfileScreen />
     case 'stuTimetable': return <StuTimetableScreen />
     case 'stuAssignments': return <StuAssignmentsScreen />
+    case 'stuNotes': return <StuNotesScreen />
     default: return <HomeScreen />
   }
 }

@@ -7,10 +7,10 @@ const dbErr = (op: string, notify: (m: string) => void) =>
 export type Screen =
   | 'home' | 'timetable' | 'attendance' | 'results' | 'assign' | 'reminder'
   | 'students' | 'editStudent' | 'addStudent' | 'teachers' | 'addTeacher'
-  | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'more' | 'subscription'
+  | 'fees' | 'meetings' | 'rankings' | 'branches' | 'subjects' | 'notes' | 'more' | 'subscription'
   | 'admin' | 'staffApprovals' | 'staffProfile' | 'reports' | 'register' | 'pending' | 'denied'
   | 'stuHome' | 'stuAttendance' | 'stuResults' | 'stuRanking' | 'stuTeachers'
-  | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile' | 'stuTimetable' | 'stuAssignments'
+  | 'stuTeacher' | 'stuFees' | 'stuNotif' | 'stuProfile' | 'stuEditProfile' | 'stuTimetable' | 'stuAssignments' | 'stuNotes'
 
 export type Tab = 'home' | 'timetable' | 'students' | 'teachers' | 'more'
   | 'stuHome' | 'stuResults' | 'stuRanking' | 'stuTeachers' | 'stuProfile'
@@ -30,6 +30,8 @@ export interface BranchItem { name: string; address: string; students: number; s
 export interface StuResultItem { subject: string; test: string; date: string; marks: number; total: number }
 export interface AttLogItem { day: string; date: string; status: string; icon: string; tint: string; color: string }
 export interface StuAssignmentItem { title: string; subject: string; due: string; instructions: string }
+export interface NoteItem { dbId?: string; title: string; subject: string; klass: string; body: string; fileUrl: string; linkUrl: string }
+export interface StuNoteItem { title: string; subject: string; body: string; fileUrl: string; linkUrl: string; date: string }
 export interface FeeHistoryItem { period: string; date: string; amount: string }
 export interface NotifItem { icon: string; tint: string; title: string; detail: string; when: string; dbId?: string }
 export interface SubjectItem { name: string; dbId: string }
@@ -65,6 +67,8 @@ interface State {
   stuResults: StuResultItem[]
   stuAssignments: StuAssignmentItem[]
   stuMonthly: { attPresent: number; attTotal: number; tests: number; avgPct: number } | null
+  notesList: NoteItem[]
+  stuNotes: StuNoteItem[]
   currentStudentDbId: string | null
   stuPendingFee: { amount: string; period: string; dueDate: string } | null
   searchQuery: string
@@ -97,6 +101,10 @@ interface Actions {
   deleteBranch: (dbId: string) => void
   addSubject: (name: string) => void
   deleteSubject: (dbId: string) => void
+  loadNotes: () => Promise<void>
+  addNote: (n: { title: string; subject: string; klass: string; body: string; fileUrl: string; linkUrl: string }) => Promise<void>
+  deleteNote: (dbId: string) => Promise<void>
+  loadStudentNotes: () => Promise<void>
   loadStudentByCode: (code: string, navigate?: boolean) => Promise<boolean>
   createCentre: (name: string) => Promise<void>
   joinCentre: (code: string) => Promise<void>
@@ -137,6 +145,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   timetableData: {}, schedule: [], rankData: {}, subjects: [],
   stuReminders: [], stuNotifications: [], stuAttendanceLog: [],
   stuFeeHistory: [], stuResults: [], stuAssignments: [], stuMonthly: null,
+  notesList: [], stuNotes: [],
   currentStudentDbId: null, stuPendingFee: null, searchQuery: '', lastAdded: null,
 
   go: (screen, tab) => set({ screen, tab: (tab ?? screen) as Tab, origin: null }),
@@ -398,6 +407,46 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     get().notify('Subject removed')
   },
 
+  loadNotes: async () => {
+    const { data, error } = await supabase.from('notes')
+      .select('id, title, subject, class, body, file_url, link_url')
+      .order('created_at', { ascending: false })
+    if (error) { get().notify('Could not load notes'); return }
+    set({ notesList: (data ?? []).map((n: any) => ({
+      dbId: n.id, title: n.title, subject: n.subject ?? '', klass: n.class,
+      body: n.body ?? '', fileUrl: n.file_url ?? '', linkUrl: n.link_url ?? '',
+    })) })
+  },
+
+  addNote: async (n) => {
+    if (!n.title.trim()) { get().notify('Enter a title'); return }
+    if (!n.body.trim() && !n.fileUrl && !n.linkUrl) { get().notify('Add a note, file, or link'); return }
+    const { data, error } = await supabase.from('notes').insert({
+      title: n.title.trim(), subject: n.subject || null, class: n.klass,
+      body: n.body.trim() || null, file_url: n.fileUrl || null, link_url: n.linkUrl.trim() || null,
+    }).select('id').single()
+    if (error) { get().notify('Could not save note'); return }
+    set((s) => ({ notesList: [{ dbId: data.id, ...n }, ...s.notesList] }))
+    get().notify('Note shared with the class')
+  },
+
+  deleteNote: async (dbId) => {
+    set((s) => ({ notesList: s.notesList.filter(x => x.dbId !== dbId) }))
+    await supabase.from('notes').delete().eq('id', dbId).then(dbErr('delete note', get().notify))
+    get().notify('Note removed')
+  },
+
+  loadStudentNotes: async () => {
+    const code = typeof window !== 'undefined' ? localStorage.getItem('student_code') : null
+    if (!code) return
+    const { data, error } = await supabase.rpc('get_student_notes', { p_code: code })
+    if (error) { get().notify('Could not load study material'); return }
+    set({ stuNotes: (data ?? []).map((n: any) => ({
+      title: n.title ?? '', subject: n.subject ?? '', body: n.body ?? '',
+      fileUrl: n.fileUrl ?? '', linkUrl: n.linkUrl ?? '', date: n.date ?? '',
+    })) })
+  },
+
   loadStudentByCode: async (code, navigate = true) => {
     const trimmed = code.trim()
     if (trimmed.length < 4) { if (navigate) get().notify('Enter your code'); return false }
@@ -521,7 +570,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       supabaseUserId: null, staffStatus: 'none', headExists: false, staffList: [],
       teachers: [], students: [], branchesList: [], meetingsList: [], assignmentsList: [],
       timetableData: {}, schedule: [], rankData: {}, subjects: [],
-      stuReminders: [], stuNotifications: [], stuAttendanceLog: [], stuFeeHistory: [], stuResults: [], stuAssignments: [], stuMonthly: null,
+      stuReminders: [], stuNotifications: [], stuAttendanceLog: [], stuFeeHistory: [], stuResults: [], stuAssignments: [], stuMonthly: null, stuNotes: [],
       currentStudentDbId: null, stuPendingFee: null,
     })
     get().notify('Signed out')
