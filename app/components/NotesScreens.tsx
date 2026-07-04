@@ -96,7 +96,11 @@ export function NotesScreen() {
 // --- Student: view class study material -------------------------------------
 export function StuNotesScreen() {
   const { go, stuNotes, loadStudentNotes } = useDashboard()
-  useEffect(() => { loadStudentNotes() }, [loadStudentNotes])
+  // Opening the screen clears the "new material" badge on Home.
+  useEffect(() => {
+    loadStudentNotes()
+    if (typeof window !== 'undefined') localStorage.setItem('notes_seen_at', String(Date.now()))
+  }, [loadStudentNotes])
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">

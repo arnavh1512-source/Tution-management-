@@ -1,13 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDashboard, GRADIENTS, initials, av, stuGrade } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
 
 export function StuHomeScreen() {
-  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, loadStudentByCode, stuMonthly } = useDashboard()
+  const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, loadStudentByCode, stuMonthly, stuNotes, loadStudentNotes } = useDashboard()
   const [linkCode, setLinkCode] = useState('')
   const me = students.find(s => s.dbId === currentStudentDbId)
+
+  // Cheap metadata load (no file bytes) so we can badge unseen study material.
+  useEffect(() => { loadStudentNotes() }, [loadStudentNotes])
+  const notesSeenAt = typeof window !== 'undefined' ? Number(localStorage.getItem('notes_seen_at') || 0) : 0
+  const newNotes = stuNotes.filter(n => n.date && new Date(n.date).getTime() > notesSeenAt).length
 
   if (!currentStudentDbId) {
     return (
@@ -112,9 +117,10 @@ export function StuHomeScreen() {
           <div className="w-[38px] h-[38px] rounded-[12px] bg-[#fcf3e3] flex items-center justify-center text-lg mb-2">📚</div>
           <div className="text-[12.5px] font-extrabold text-td-dark leading-tight">Homework</div>
         </button>
-        <button onClick={() => go('stuNotes', 'stuHome')} className="text-left bg-white border border-td-border rounded-[18px] p-3 cursor-pointer">
+        <button onClick={() => go('stuNotes', 'stuHome')} className="relative text-left bg-white border border-td-border rounded-[18px] p-3 cursor-pointer">
           <div className="w-[38px] h-[38px] rounded-[12px] bg-[#e7f5ee] flex items-center justify-center text-lg mb-2">📄</div>
           <div className="text-[12.5px] font-extrabold text-td-dark leading-tight">Material</div>
+          {newNotes > 0 && <span className="absolute top-2 right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-td-red text-white text-[10.5px] font-extrabold flex items-center justify-center">{newNotes}</span>}
         </button>
       </div>
 
