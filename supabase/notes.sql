@@ -26,15 +26,18 @@ create policy notes_staff on public.notes for all to authenticated
   using (public.is_staff() and centre_id = public.current_centre())
   with check (public.is_staff() and centre_id = public.current_centre());
 
--- Storage bucket for note files (public read so anon students can download;
--- paths are random UUIDs, so not enumerable). Staff-only writes.
+-- Storage bucket for note files. Public bucket: the object endpoint serves
+-- downloads WITHOUT any RLS, so students (anon) can open a file via its exact
+-- URL. We deliberately DO NOT add a public SELECT policy on storage.objects —
+-- that would allow listing/enumerating every centre's files. Paths are random
+-- UUIDs, so a file is only reachable by someone given its exact link (which
+-- only get_student_notes hands out, scoped to the student's own class).
 insert into storage.buckets (id, name, public) values ('notes', 'notes', true)
   on conflict (id) do nothing;
 
-drop policy if exists "notes files public read" on storage.objects;
+drop policy if exists "notes files public read" on storage.objects;  -- remove listing
 drop policy if exists "notes files staff upload" on storage.objects;
 drop policy if exists "notes files staff delete" on storage.objects;
-create policy "notes files public read" on storage.objects for select using (bucket_id = 'notes');
 create policy "notes files staff upload" on storage.objects for insert to authenticated with check (bucket_id = 'notes' and public.is_staff());
 create policy "notes files staff delete" on storage.objects for delete to authenticated using (bucket_id = 'notes' and public.is_staff());
 
