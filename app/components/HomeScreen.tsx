@@ -9,18 +9,15 @@ export function HomeScreen() {
   const displayName = myName || googleEmail?.split('@')[0] || (isAdmin ? 'Admin' : 'Teacher')
   const ini = initials(displayName)
 
-  // Teachers get daily-update actions only; head teachers get everything.
-  const allActions: { icon: string; label: string; tint: string; screen: Screen; tab?: string; headOnly?: boolean }[] = [
+  // Home = the four quick daily shortcuts (same for head and teacher, clean
+  // grid). Timetable is a bottom tab; Study material + all management (fees,
+  // rankings, meetings, branches, subjects, reports, staff) live in More.
+  const quickActions: { icon: string; label: string; tint: string; screen: Screen; tab?: string }[] = [
     { icon: '✅', label: 'Attendance', tint: '#e7f5ee', screen: 'attendance' },
     { icon: '📊', label: 'Results', tint: '#eaf1fc', screen: 'results' },
     { icon: '📚', label: 'Assignment', tint: '#fcf3e3', screen: 'assign' },
     { icon: '🔔', label: 'Reminder', tint: '#fdecea', screen: 'reminder' },
-    { icon: '🗓️', label: 'Timetable', tint: '#eef0fc', screen: 'timetable', tab: 'timetable', headOnly: true },
-    { icon: '💳', label: 'Fees', tint: '#e7f5ee', screen: 'fees', headOnly: true },
-    { icon: '🏆', label: 'Rankings', tint: '#fcf3e3', screen: 'rankings', headOnly: true },
-    { icon: '📅', label: 'Meetings', tint: '#eaf1fc', screen: 'meetings', headOnly: true },
   ]
-  const quickActions = allActions.filter(a => isAdmin || !a.headOnly)
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
