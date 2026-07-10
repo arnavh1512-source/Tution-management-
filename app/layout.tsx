@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   description: 'Second Skool — attendance, results, fees, rankings & more.',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, title: 'Second Skool', statusBarStyle: 'default' },
-  icons: { icon: '/icon.svg', apple: '/apple-touch-icon.png' },
 }
 
 export const viewport: Viewport = {
