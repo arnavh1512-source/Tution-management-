@@ -5,8 +5,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Second Skool'
   const options = {
     body: data.body || '',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/icon-512.png',
+    badge: '/icon-512.png',
     tag: data.tag || undefined,
     data: { url: data.url || '/' },
   }
