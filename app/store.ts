@@ -295,9 +295,11 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (targets.length) {
       const rows = targets.map(s => ({ student_id: s.dbId, title: `${type} Reminder`, detail: message, icon }))
       supabase.from('notifications').insert(rows).then(dbErr('send notifications', get().notify))
-      // Best-effort push to students who enabled notifications on their device.
+      // Push to students who enabled notifications; report the result so it's
+      // clear whether any device actually got a lock-screen alert.
       const codes = targets.map(s => s.id).filter(Boolean)
       if (codes.length) sendPush({ studentCodes: codes, title: `${type} reminder`, body: message })
+        .then(r => get().notify(r.error ? `Push failed: ${r.error}` : `Push sent to ${r.sent} device(s)`))
     }
 
     const now = new Date().toISOString()

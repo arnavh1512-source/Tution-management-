@@ -35,15 +35,21 @@ export async function enablePush(kind: 'profile' | 'student', ref: string): Prom
   }
 }
 
-// Fire a push send request to our API route (best-effort; never blocks the UI).
-export async function sendPush(payload: { studentCodes?: string[]; notifyHead?: boolean; title: string; body: string; url?: string }): Promise<void> {
+// Fire a push send request to our API route. Returns how many devices were
+// pushed (or a short error string) so the caller can surface a diagnostic.
+export async function sendPush(payload: { studentCodes?: string[]; notifyHead?: boolean; title: string; body: string; url?: string }): Promise<{ sent?: number; error?: string }> {
   try {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    await fetch('/api/push', {
+    if (!session) return { error: 'not signed in' }
+    const res = await fetch('/api/push', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify(payload),
     })
-  } catch { /* best-effort */ }
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: json.error || `http ${res.status}` }
+    return { sent: json.sent ?? 0 }
+  } catch {
+    return { error: 'request failed' }
+  }
 }
