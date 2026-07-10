@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useDashboard, GRADIENTS, initials, av, stuGrade } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
+import { enablePush, pushSupported } from '../lib/push'
 
 export function StuHomeScreen() {
   const { go, students, stuReminders, stuResults, stuAttendanceLog, stuPendingFee, currentStudentDbId, googleEmail, rankData, loadStudentByCode, stuMonthly, stuNotes, loadStudentNotes } = useDashboard()
@@ -63,9 +64,17 @@ export function StuHomeScreen() {
         </button>
       </div>
 
-      <div className="inline-flex items-center gap-[7px] bg-white border border-td-border rounded-[20px] py-[7px] px-[13px] mb-[18px]">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-        <span className="text-[12.5px] font-semibold text-td-text">{me?.school || 'Your branch'}</span>
+      <div className="flex items-center justify-between gap-2 mb-[18px]">
+        <div className="inline-flex items-center gap-[7px] bg-white border border-td-border rounded-[20px] py-[7px] px-[13px]">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+          <span className="text-[12.5px] font-semibold text-td-text">{me?.school || 'Your branch'}</span>
+        </div>
+        {pushSupported() && me?.id && (
+          <button onClick={async () => { const r = await enablePush('student', me.id); useDashboard.getState().notify(r.ok ? 'Alerts turned on' : (r.error || 'Could not enable')) }} className="inline-flex items-center gap-1.5 bg-[#eaf1fc] text-td-primary text-[12px] font-bold py-[7px] px-3 rounded-[20px] cursor-pointer border-none shrink-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            Alerts
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-3.5">

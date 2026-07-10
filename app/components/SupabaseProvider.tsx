@@ -10,6 +10,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const role = useDashboard(s => s.role)
   const staffStatus = useDashboard(s => s.staffStatus)
 
+  // Register the service worker so the app is installable (Add to Home Screen)
+  // and can receive push notifications.
+  useEffect(() => {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }, [])
+
   // Head only: keep the pending list warm and alert the instant a teacher
   // requests access (realtime on profiles; RLS limits events to own centre).
   useEffect(() => {

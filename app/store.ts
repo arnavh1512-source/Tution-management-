@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from './lib/supabase'
+import { sendPush } from './lib/push'
 
 const dbErr = (op: string, notify: (m: string) => void) =>
   ({ error }: { error: unknown }) => { if (error) notify(`Sync failed: ${op}`) }
@@ -293,6 +294,9 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (targets.length) {
       const rows = targets.map(s => ({ student_id: s.dbId, title: `${type} Reminder`, detail: message, icon }))
       supabase.from('notifications').insert(rows).then(dbErr('send notifications', get().notify))
+      // Best-effort push to students who enabled notifications on their device.
+      const codes = targets.map(s => s.id).filter(Boolean)
+      if (codes.length) sendPush({ studentCodes: codes, title: `${type} reminder`, body: message })
     }
 
     const now = new Date().toISOString()
@@ -490,6 +494,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
   joinCentre: async (code) => {
     const { error } = await supabase.rpc('join_centre', { p_code: code })
     if (error) { get().notify(error.message || 'Invalid centre code'); return }
+    sendPush({ notifyHead: true, title: 'New access request', body: `${get().myName || 'A teacher'} is requesting access to your centre.` })
     set({ role: 'teacher', staffStatus: 'pending', screen: 'pending', tab: 'home' })
   },
 

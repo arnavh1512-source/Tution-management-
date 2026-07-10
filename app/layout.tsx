@@ -11,6 +11,9 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Second Skool',
   description: 'Second Skool — attendance, results, fees, rankings & more.',
+  manifest: '/manifest.json',
+  appleWebApp: { capable: true, title: 'Second Skool', statusBarStyle: 'default' },
+  icons: { icon: '/icon.svg', apple: '/apple-touch-icon.png' },
 }
 
 export const viewport: Viewport = {

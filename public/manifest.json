@@ -1,0 +1,13 @@
+{
+  "name": "Second Skool",
+  "short_name": "Second Skool",
+  "description": "Attendance, results, fees, timetable & reminders for your tuition centre.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f4f8",
+  "theme_color": "#2a6fdb",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useDashboard, REMINDER_TEMPLATES, initials, av, feeColor, type Screen } from '../store'
 import { ScreenHeader, PrimaryButton, ChevronRight } from './Shell'
+import { enablePush, pushSupported } from '../lib/push'
 
 export function FeesScreen() {
   const { students, back, notify, addFee, toggleFeeStatus, saveReminder } = useDashboard()
@@ -363,8 +364,15 @@ export function MoreScreen() {
 }
 
 export function StaffProfileScreen() {
-  const { go, role, myName, myPhone, googleEmail, saveStaffProfile, signOut, centreName, loadMyCentre, renameCentre } = useDashboard()
+  const { go, role, myName, myPhone, googleEmail, saveStaffProfile, signOut, centreName, loadMyCentre, renameCentre, supabaseUserId, notify } = useDashboard()
   const isAdmin = role === 'admin'
+  const [pushOn, setPushOn] = useState(false)
+  const enableNotifs = async () => {
+    if (!supabaseUserId) return
+    const res = await enablePush('profile', supabaseUserId)
+    if (res.ok) { setPushOn(true); notify('Notifications on for this device') }
+    else notify(res.error || 'Could not enable')
+  }
   const [name, setName] = useState(myName)
   const [phone, setPhone] = useState(myPhone)
   const [centre, setCentre] = useState(centreName)
@@ -412,7 +420,14 @@ export function StaffProfileScreen() {
 
       <PrimaryButton onClick={busy ? () => {} : save}>{busy ? 'Saving…' : 'Save changes'}</PrimaryButton>
 
-      <button onClick={signOut} className="w-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-sm font-extrabold p-[15px] rounded-2xl cursor-pointer mt-4 flex items-center justify-center gap-[9px]">
+      {pushSupported() && (
+        <button onClick={enableNotifs} disabled={pushOn} className="w-full border border-td-border bg-white text-td-dark text-sm font-extrabold p-[15px] rounded-2xl cursor-pointer mt-3 flex items-center justify-center gap-2 disabled:opacity-60">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2a6fdb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          {pushOn ? 'Notifications enabled' : 'Enable notifications'}
+        </button>
+      )}
+
+      <button onClick={signOut} className="w-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red text-sm font-extrabold p-[15px] rounded-2xl cursor-pointer mt-3 flex items-center justify-center gap-[9px]">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8553c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
         Sign out
       </button>
