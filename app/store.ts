@@ -98,6 +98,7 @@ interface Actions {
   addFee: (studentDbId: string, amount: number, period: string, dueDate: string) => void
   toggleFeeStatus: (idx: number) => void
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
+  deleteTimetableEntry: (day: string, p: string[]) => void
   addBranch: (name: string, address: string, isMain: boolean) => void
   deleteBranch: (dbId: string) => void
   addSubject: (name: string) => void
@@ -374,6 +375,14 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       subject, class: klass, room: room || null,
     }).then(dbErr('add timetable', get().notify))
     get().notify(`Period added: ${subject} on ${day}`)
+  },
+
+  deleteTimetableEntry: (day, p) => {
+    set((s) => ({ timetableData: { ...s.timetableData, [day]: (s.timetableData[day] ?? []).filter(x => !(x[0] === p[0] && x[1] === p[1] && x[2] === p[2] && x[3] === p[3])) } }))
+    supabase.from('timetable').delete()
+      .eq('day', day).eq('start_time', p[0]).eq('end_time', p[1]).eq('subject', p[2]).eq('class', p[3])
+      .then(dbErr('remove period', get().notify))
+    get().notify('Period removed')
   },
 
   addBranch: (name, address, isMain) => {

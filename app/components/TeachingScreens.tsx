@@ -5,7 +5,7 @@ import { useDashboard, REMINDER_TEMPLATES, initials, av } from '../store'
 import { ScreenHeader, PrimaryButton } from './Shell'
 
 export function TimetableScreen() {
-  const { ttDay, timetableData, back, set, addTimetableEntry, subjects, role } = useDashboard()
+  const { ttDay, timetableData, back, set, addTimetableEntry, deleteTimetableEntry, subjects, role } = useDashboard()
   const isAdmin = role === 'admin'
   const [showForm, setShowForm] = useState(false)
   const [startTime, setStartTime] = useState('09:00')
@@ -114,9 +114,12 @@ export function TimetableScreen() {
                 </div>
                 <div className="flex-1 pb-3.5">
                   <div className="rounded-2xl p-[13px] px-[15px] border" style={{ background: s.bg, borderColor: s.border }}>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-2">
                       <div className="text-sm font-extrabold" style={{ color: s.titleColor }}>{p[2]}</div>
-                      <span className="text-[10.5px] font-bold py-1 px-[9px] rounded-[20px]" style={{ color: s.pillColor, background: s.pillBg }}>{s.tag}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10.5px] font-bold py-1 px-[9px] rounded-[20px]" style={{ color: s.pillColor, background: s.pillBg }}>{s.tag}</span>
+                        {isAdmin && <button onClick={() => deleteTimetableEntry(ttDay, p)} className="w-6 h-6 rounded-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red flex items-center justify-center cursor-pointer text-[15px] leading-none">×</button>}
+                      </div>
                     </div>
                     <div className="text-xs text-td-muted mt-1">{p[3]} · {p[4]}</div>
                   </div>
