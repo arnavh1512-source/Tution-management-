@@ -6,7 +6,8 @@ import { supabase } from '../lib/supabase'
 import { PrimaryButton } from './Shell'
 
 const LOGO = (
-  <div className="w-[60px] h-[60px] rounded-[18px] flex items-center justify-center text-white font-extrabold text-2xl" style={{ background: 'linear-gradient(135deg,#2a6fdb,#5a93ef)' }}>S</div>
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src="/icon-512.png" alt="Second Skool" width={72} height={72} className="rounded-[18px] object-cover shadow-[0_2px_10px_rgba(20,30,60,.12)]" />
 )
 
 export function LoginScreen() {
