@@ -246,7 +246,7 @@ export function StuAttendanceScreen() {
 }
 
 export function StuResultsScreen() {
-  const { go, stuResults, students, currentStudentDbId } = useDashboard()
+  const { stuResults, students, currentStudentDbId } = useDashboard()
   const me = students.find(s => s.dbId === currentStudentDbId)
   const totalMarks = stuResults.reduce((a, r) => a + r.marks, 0)
   const totalMax = stuResults.reduce((a, r) => a + r.total, 0)
@@ -648,7 +648,7 @@ export function StuProfileScreen() {
 }
 
 export function StuEditProfileScreen() {
-  const { stuEdit, go, set, notify, students, currentStudentDbId, stuResults, googleEmail, saveStudentProfile } = useDashboard()
+  const { stuEdit, go, set, students, currentStudentDbId, stuResults, googleEmail, saveStudentProfile } = useDashboard()
   const me = students.find(s => s.dbId === currentStudentDbId)
   const displayName = me?.name ?? googleEmail?.split('@')[0] ?? 'Student'
   const ini = initials(displayName)

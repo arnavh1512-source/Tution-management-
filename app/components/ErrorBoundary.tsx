@@ -1,6 +1,6 @@
 'use client'
 
-import { Component, type ReactNode, type ErrorInfo } from 'react'
+import { Component, type ReactNode } from 'react'
 
 interface Props { children: ReactNode }
 interface EState { hasError: boolean; error: Error | null }
@@ -12,7 +12,7 @@ export class ErrorBoundary extends Component<Props, EState> {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
+  componentDidCatch(error: Error) {
     console.error('App error:', error.message)
   }
 

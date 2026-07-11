@@ -4,6 +4,20 @@ import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useDashboard, type Role, type StaffStatus, type Teacher, type Student, type FeeStatus, type MeetingItem, type AssignmentItem, type BranchItem, type StuResultItem, type AttLogItem, type NotifItem, type FeeHistoryItem, type ScheduleItem } from '../store'
 
+// Minimal shape of the Supabase rows this provider reads — the DB schema is the
+// source of truth, and existing `??` fallbacks handle nullable columns.
+type Row = {
+  [key: string]: unknown
+  id: string; name: string; address: string; is_main: boolean; branch_id: string
+  date: string; title: string; time: string; meeting_type: string
+  due_date: string; class: string
+  day: string; start_time: string; end_time: string; subject: string; room: string
+  test_id: string; subject_id: string; max_marks: number; marks: number
+  student_id: string; status: string
+  period: string; paid_date: string; amount: number
+  icon: string; tint: string; detail: string; created_at: string
+}
+
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const { setAuth, loadTeachers, loadStudents, set } = useDashboard()
   const lastRefresh = useRef(0)
@@ -102,18 +116,18 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     // Per-student attendance % from the fetched attendance rows (mapStudent
     // alone can't know it — without this every student shows 0%).
     const attByStudent: Record<string, { p: number; t: number }> = {}
-    for (const a of (attendance ?? []) as any[]) {
+    for (const a of (attendance ?? []) as Row[]) {
       const k = a.student_id as string
       if (!attByStudent[k]) attByStudent[k] = { p: 0, t: 0 }
       attByStudent[k].t++
       if (a.status === 'Present') attByStudent[k].p++
     }
-    const mappedStudents = (students ?? []).map((row: any) => {
+    const mappedStudents = (students ?? []).map((row) => {
       const st = mapStudent(row)
       const att = attByStudent[st.dbId ?? '']
       return att && att.t > 0 ? { ...st, attendance: Math.round((att.p / att.t) * 100) } : st
     })
-    const subjectList = (subjects ?? []).map((s: any) => ({ name: s.name as string, dbId: s.id as string }))
+    const subjectList = (subjects ?? []).map((s: Row) => ({ name: s.name as string, dbId: s.id as string }))
     const subjectMap = Object.fromEntries(subjectList.map(s => [s.dbId, s.name]))
     const studentMap = Object.fromEntries(mappedStudents.map(s => [s.dbId, s]))
 
@@ -121,15 +135,15 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     loadStudents(mappedStudents)
 
     // Branches — count per-branch
-    const branchesList: BranchItem[] = (branches ?? []).map((b: any) => ({
+    const branchesList: BranchItem[] = (branches ?? []).map((b: Row) => ({
       name: b.name, address: b.address ?? '', main: !!b.is_main,
-      students: (students ?? []).filter((s: any) => s.branch_id === b.id).length,
-      staff: (teachers ?? []).filter((t: any) => t.branch_id === b.id).length,
+      students: (students ?? []).filter((s) => s.branch_id === b.id).length,
+      staff: (teachers ?? []).filter((t: Row) => t.branch_id === b.id).length,
       dbId: b.id,
     }))
 
     // Meetings
-    const meetingsList: MeetingItem[] = (meetings ?? []).map((m: any) => {
+    const meetingsList: MeetingItem[] = (meetings ?? []).map((m: Row) => {
       const d = new Date(m.date)
       return {
         day: String(d.getDate()).padStart(2, '0'),
@@ -140,7 +154,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Assignments
-    const assignmentsList: AssignmentItem[] = (assignments ?? []).map((a: any) => {
+    const assignmentsList: AssignmentItem[] = (assignments ?? []).map((a: Row) => {
       const d = new Date(a.due_date)
       return {
         title: a.title, klass: a.class ?? '',
@@ -152,7 +166,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
     // Timetable grouped by day
     const timetableData: Record<string, string[][]> = {}
-    for (const t of (timetable ?? []) as any[]) {
+    for (const t of (timetable ?? []) as Row[]) {
       const day = t.day as string
       if (!timetableData[day]) timetableData[day] = []
       timetableData[day].push([t.start_time, t.end_time, t.subject ?? '', t.class ?? '', t.room ?? ''])
@@ -180,8 +194,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     const subjectItems = subjectList
 
     // Results + Rankings
-    const testMap: Record<string, any> = Object.fromEntries((tests ?? []).map((t: any) => [t.id, t]))
-    const stuResults: StuResultItem[] = (results ?? []).map((r: any) => {
+    const testMap: Record<string, Row> = Object.fromEntries((tests ?? []).map((t: Row) => [t.id, t]))
+    const stuResults: StuResultItem[] = (results ?? []).map((r: Row) => {
       const test = testMap[r.test_id]
       return {
         subject: subjectMap[test?.subject_id] ?? 'Unknown',
@@ -193,7 +207,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     // Compute rankings per subject from results
     const rankData: Record<string, [string, number][]> = {}
     const resultsBySubjectStudent: Record<string, Record<string, { total: number; max: number }>> = {}
-    for (const r of (results ?? []) as any[]) {
+    for (const r of (results ?? []) as Row[]) {
       const test = testMap[r.test_id]
       if (!test) continue
       const subjectName = subjectMap[test.subject_id] ?? 'Unknown'
@@ -216,7 +230,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       Absent: { icon: '❌', tint: '#fdecea', color: '#e8553c' },
       Leave: { icon: '📋', tint: '#fcf3e3', color: '#e0962f' },
     }
-    const stuAttendanceLog: AttLogItem[] = (attendance ?? []).slice(0, 15).map((a: any) => {
+    const stuAttendanceLog: AttLogItem[] = (attendance ?? []).slice(0, 15).map((a: Row) => {
       const d = new Date(a.date)
       const si = statusIcons[a.status] ?? statusIcons.Present
       return {
@@ -227,12 +241,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Fee history + pending fee (for student view)
-    const stuFeeHistory: FeeHistoryItem[] = (fees ?? []).filter((f: any) => f.status === 'Paid').map((f: any) => ({
+    const stuFeeHistory: FeeHistoryItem[] = (fees ?? []).filter((f: Row) => f.status === 'Paid').map((f: Row) => ({
       period: f.period ?? '',
       date: f.paid_date ? new Date(f.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
       amount: `₹${(f.amount ?? 0).toLocaleString('en-IN')}`,
     }))
-    const pendingFee = (fees ?? []).find((f: any) => f.status !== 'Paid')
+    const pendingFee = (fees ?? []).find((f: Row) => f.status !== 'Paid')
     const stuPendingFee = pendingFee ? {
       amount: `₹${(pendingFee.amount ?? 0).toLocaleString('en-IN')}`,
       period: pendingFee.period ?? '',
@@ -240,7 +254,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     } : null
 
     // Notifications (for student view)
-    const stuNotifications: NotifItem[] = (notifications ?? []).map((n: any) => ({
+    const stuNotifications: NotifItem[] = (notifications ?? []).map((n: Row) => ({
       icon: n.icon ?? '📢', tint: n.tint ?? '#eaf1fc',
       title: n.title ?? '', detail: n.detail ?? '',
       when: timeAgo(n.created_at), dbId: n.id,
@@ -282,6 +296,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; auth listener must not rebind per render
   }, [])
 
   // Refresh-on-focus: re-pull fresh data whenever the user returns to the app
@@ -305,6 +320,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener('visibilitychange', refresh)
       window.removeEventListener('focus', refresh)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; focus listener reads fresh state via getState()
   }, [])
 
   return <>{children}</>

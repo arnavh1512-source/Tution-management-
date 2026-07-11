@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import type { ComponentType } from 'react'
 import { useDashboard } from './store'
 import { PhoneFrame } from './components/Shell'
 import { SupabaseProvider } from './components/SupabaseProvider'
@@ -16,7 +17,7 @@ function ScreenLoading() {
   )
 }
 
-const dyn = (importFn: () => Promise<Record<string, any>>, name: string) =>
+const dyn = (importFn: () => Promise<Record<string, ComponentType>>, name: string) =>
   dynamic(() => importFn().then(m => ({ default: m[name] })), { loading: ScreenLoading })
 
 const StaffApprovalsScreen = dyn(() => import('./components/AdminScreens'), 'StaffApprovalsScreen')

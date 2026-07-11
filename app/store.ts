@@ -245,9 +245,9 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       const student = students.find(s => s.name === name)
       if (!student?.dbId) return null
       return { student_id: student.dbId, date: new Date().toISOString().split('T')[0], status: att[i] === 'absent' ? 'Absent' : 'Present' }
-    }).filter(Boolean)
+    }).filter((r): r is NonNullable<typeof r> => r !== null)
     if (records.length) {
-      supabase.from('attendance').upsert(records as any[], { onConflict: 'student_id,date' }).then(dbErr('save attendance', get().notify))
+      supabase.from('attendance').upsert(records, { onConflict: 'student_id,date' }).then(dbErr('save attendance', get().notify))
     }
     // Tell only the absent students (their parents watch these devices).
     const absent = studentNames
@@ -475,7 +475,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       .select('id, title, subject, class, body, file_url, link_url')
       .order('created_at', { ascending: false })
     if (error) { get().notify('Could not load notes'); return }
-    set({ notesList: (data ?? []).map((n: any) => ({
+    set({ notesList: (data ?? []).map((n: { id: string; title: string; subject: string | null; class: string; body: string | null; file_url: string | null; link_url: string | null }) => ({
       dbId: n.id, title: n.title, subject: n.subject ?? '', klass: n.class,
       body: n.body ?? '', fileUrl: n.file_url ?? '', linkUrl: n.link_url ?? '',
     })) })
@@ -505,7 +505,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (!code) return
     const { data, error } = await supabase.rpc('get_student_notes', { p_code: code })
     if (error) { get().notify('Could not load study material'); return }
-    set({ stuNotes: (data ?? []).map((n: any) => ({
+    set({ stuNotes: (data ?? []).map((n: { title: string | null; subject: string | null; body: string | null; fileUrl: string | null; linkUrl: string | null; date: string | null }) => ({
       title: n.title ?? '', subject: n.subject ?? '', body: n.body ?? '',
       fileUrl: n.fileUrl ?? '', linkUrl: n.linkUrl ?? '', date: n.date ?? '',
     })) })
@@ -729,9 +729,26 @@ function timeAgo(dateStr: string): string {
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 const rupee = (n: number) => `₹${(n ?? 0).toLocaleString('en-IN')}`
 
-export function mapSnapshot(snap: any): Partial<State> {
+// Shape of the get_student_snapshot RPC payload — keys mirror the SQL
+// json_build_object; nullable columns are handled by the `??` fallbacks below.
+type SnapRow = {
+  [key: string]: unknown
+  status: string; date: string; subject: string; test: string; marks: number; total: number
+  period: string; paidDate: string; amount: number; dueDate: string
+  icon: string; title: string; detail: string; createdAt: string
+  name: string; experience: number; qualification: string; rating: number | null; about: string
+  day: string; start: string; end: string; room: string; due: string; instructions: string
+}
+type Snapshot = {
+  student?: { [key: string]: string | undefined }
+  attendance?: SnapRow[]; results?: SnapRow[]; fees?: SnapRow[]; notifications?: SnapRow[]
+  teachers?: SnapRow[]; timetable?: SnapRow[]; assignments?: SnapRow[]
+  rankings?: Record<string, [string, number][]>
+}
+
+export function mapSnapshot(snap: Snapshot): Partial<State> {
   const s = snap.student ?? {}
-  const attendance: any[] = snap.attendance ?? []
+  const attendance: SnapRow[] = snap.attendance ?? []
   const present = attendance.filter(a => a.status === 'Present').length
   const attPct = attendance.length ? Math.round((present / attendance.length) * 100) : 0
 
@@ -741,7 +758,7 @@ export function mapSnapshot(snap: any): Partial<State> {
     parent: s.parent ?? '', id: s.code ?? '', address: s.address ?? '', dbId: s.dbId,
   }
 
-  const stuAttendanceLog: AttLogItem[] = attendance.slice(0, 15).map((a: any) => {
+  const stuAttendanceLog: AttLogItem[] = attendance.slice(0, 15).map((a: SnapRow) => {
     const d = new Date(a.date)
     const si = STATUS_ICONS[a.status] ?? STATUS_ICONS.Present
     return {
@@ -750,24 +767,24 @@ export function mapSnapshot(snap: any): Partial<State> {
     }
   })
 
-  const stuResults: StuResultItem[] = (snap.results ?? []).map((r: any) => ({
+  const stuResults: StuResultItem[] = (snap.results ?? []).map((r: SnapRow) => ({
     subject: r.subject ?? 'Unknown', test: r.test ?? 'Test', date: r.date ?? '',
     marks: r.marks ?? 0, total: r.total ?? 100,
   }))
 
-  const fees: any[] = snap.fees ?? []
-  const stuFeeHistory: FeeHistoryItem[] = fees.filter(f => f.status === 'Paid').map((f: any) => ({
+  const fees: SnapRow[] = snap.fees ?? []
+  const stuFeeHistory: FeeHistoryItem[] = fees.filter(f => f.status === 'Paid').map((f: SnapRow) => ({
     period: f.period ?? '', date: fmtDate(f.paidDate), amount: rupee(f.amount),
   }))
   const pending = fees.find(f => f.status !== 'Paid')
   const stuPendingFee = pending ? { amount: rupee(pending.amount), period: pending.period ?? '', dueDate: fmtDate(pending.dueDate) } : null
 
-  const stuNotifications: NotifItem[] = (snap.notifications ?? []).map((n: any) => ({
+  const stuNotifications: NotifItem[] = (snap.notifications ?? []).map((n: SnapRow) => ({
     icon: n.icon ?? '📢', tint: '#eaf1fc', title: n.title ?? '', detail: n.detail ?? '',
     when: timeAgo(n.createdAt), dbId: n.createdAt,
   }))
 
-  const teachers: Teacher[] = (snap.teachers ?? []).map((t: any) => ({
+  const teachers: Teacher[] = (snap.teachers ?? []).map((t: SnapRow) => ({
     name: t.name, subject: t.subject, experience: t.experience ?? 0,
     qualification: t.qualification ?? '—',
     rating: t.rating != null ? String(t.rating) : undefined, about: t.about ?? undefined,
@@ -777,25 +794,25 @@ export function mapSnapshot(snap: any): Partial<State> {
 
   // Class timetable (head sets it per class; the student sees their class's).
   const timetableData: Record<string, string[][]> = {}
-  for (const t of (snap.timetable ?? []) as any[]) {
+  for (const t of (snap.timetable ?? []) as SnapRow[]) {
     const day = t.day as string
     if (!timetableData[day]) timetableData[day] = []
     timetableData[day].push([t.start ?? '', t.end ?? '', t.subject ?? '', student.klass ?? '', t.room ?? ''])
   }
 
-  const stuAssignments: StuAssignmentItem[] = (snap.assignments ?? []).map((a: any) => ({
+  const stuAssignments: StuAssignmentItem[] = (snap.assignments ?? []).map((a: SnapRow) => ({
     title: a.title ?? '', subject: a.subject ?? '', due: fmtDate(a.due), instructions: a.instructions ?? '',
   }))
 
   // Monthly summary (last 30 days) — computed from raw ISO dates before any
   // display formatting, so the student's home card is always current.
   const cutoff = Date.now() - 30 * 86400000
-  const monthAtt = attendance.filter((a: any) => a.date && new Date(a.date).getTime() >= cutoff)
-  const monthResults = (snap.results ?? []).filter((r: any) => r.date && new Date(r.date).getTime() >= cutoff)
-  const mMarks = monthResults.reduce((acc: number, r: any) => acc + (r.marks ?? 0), 0)
-  const mTotals = monthResults.reduce((acc: number, r: any) => acc + (r.total ?? 0), 0)
+  const monthAtt = attendance.filter((a: SnapRow) => a.date && new Date(a.date).getTime() >= cutoff)
+  const monthResults = (snap.results ?? []).filter((r: SnapRow) => r.date && new Date(r.date).getTime() >= cutoff)
+  const mMarks = monthResults.reduce((acc: number, r: SnapRow) => acc + (r.marks ?? 0), 0)
+  const mTotals = monthResults.reduce((acc: number, r: SnapRow) => acc + (r.total ?? 0), 0)
   const stuMonthly = {
-    attPresent: monthAtt.filter((a: any) => a.status === 'Present').length,
+    attPresent: monthAtt.filter((a: SnapRow) => a.status === 'Present').length,
     attTotal: monthAtt.length,
     tests: monthResults.length,
     avgPct: mTotals > 0 ? Math.round((mMarks / mTotals) * 100) : 0,

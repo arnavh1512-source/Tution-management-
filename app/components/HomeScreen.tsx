@@ -3,7 +3,7 @@
 import { useDashboard, initials, type Screen } from '../store'
 
 export function HomeScreen() {
-  const { role, go, schedule, students, teachers, branchesList, googleEmail, myName } = useDashboard()
+  const { role, go, schedule, students, branchesList, googleEmail, myName } = useDashboard()
   const isAdmin = role === 'admin'
   const mainBranch = branchesList.find(b => b.main) ?? branchesList[0]
   const displayName = myName || googleEmail?.split('@')[0] || (isAdmin ? 'Admin' : 'Teacher')

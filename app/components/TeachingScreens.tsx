@@ -243,9 +243,9 @@ export function ResultsScreen() {
       const student = students.filter(s => s.klass === selKlass)[Number(idx)]
       if (!student?.dbId || !m) return null
       return { test_id: test.id, student_id: student.dbId, marks: Number(m) }
-    }).filter(Boolean)
+    }).filter((r): r is NonNullable<typeof r> => r !== null)
     if (resultRows.length) {
-      await supabase.from('results').insert(resultRows as any[])
+      await supabase.from('results').insert(resultRows)
       useDashboard.getState().notifyClass(selKlass, 'New results published', `${testName} · ${selSubject} — check your marks in the app`, '📊')
     }
     notify('Results published & parents notified')

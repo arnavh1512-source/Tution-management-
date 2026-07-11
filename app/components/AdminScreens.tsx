@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useDashboard, initials, av } from '../store'
-import { ScreenHeader, ChevronRight } from './Shell'
+import { ScreenHeader } from './Shell'
 import { supabase } from '../lib/supabase'
 import { whatsappShareUrl, weeklyReportMessage, studentReportMessage } from '../lib/share'
 import { useState } from 'react'
@@ -20,7 +20,7 @@ export function StaffApprovalsScreen() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadStaff())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [loadStaff])
+  }, [loadStaff, loadMyCentre])
 
   const pending = staffList.filter(s => s.status === 'pending')
   const active = staffList.filter(s => s.status === 'approved')
