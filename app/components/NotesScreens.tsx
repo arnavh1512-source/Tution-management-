@@ -11,11 +11,13 @@ const FileIcon = ({ url }: { url: string }) => (
 
 // --- Staff: create & manage class notes ------------------------------------
 export function NotesScreen() {
-  const { back, subjects, notesList, loadNotes, addNote, deleteNote, notify } = useDashboard()
+  const { back, subjects, notesList, loadNotes, addNote, deleteNote, notify, students } = useDashboard()
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('')
-  const [klass, setKlass] = useState('Class 10-B')
+  const [klass, setKlass] = useState('')
+  const classes = [...new Set(students.map(s => s.klass))].filter(Boolean)
+  const selKlass = klass || classes[0] || ''
   const [body, setBody] = useState('')
   const [link, setLink] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -27,6 +29,7 @@ export function NotesScreen() {
 
   const save = async () => {
     if (!title.trim()) { notify('Enter a title'); return }
+    if (!selKlass) { notify('Add students first'); return }
     setBusy(true)
     let fileUrl = ''
     if (file) {
@@ -34,7 +37,7 @@ export function NotesScreen() {
       if (res.error) { notify(res.error); setBusy(false); return }
       fileUrl = res.url ?? ''
     }
-    await addNote({ title, subject, klass, body, fileUrl, linkUrl: link })
+    await addNote({ title, subject, klass: selKlass, body, fileUrl, linkUrl: link })
     setBusy(false); reset()
   }
 
@@ -56,7 +59,11 @@ export function NotesScreen() {
                 {subjects.map(s => <option key={s.name}>{s.name}</option>)}
               </select>
             </div>
-            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label><input value={klass} onChange={e => setKlass(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
+            <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label>
+              <select value={selKlass} onChange={e => setKlass(e.target.value)} disabled={classes.length === 0} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none disabled:opacity-60">
+                {classes.length ? classes.map(c => <option key={c}>{c}</option>) : <option value="">Add students first</option>}
+              </select>
+            </div>
           </div>
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Note <span className="text-td-subtle font-semibold">· type here (free)</span></label><textarea rows={3} value={body} onChange={e => setBody(e.target.value)} placeholder="Write the note, or leave blank if attaching a file/link…" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none resize-none focus:border-td-primary" /></div>
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Attach PDF/image <span className="text-td-subtle font-semibold">· optional, max 10 MB</span></label>

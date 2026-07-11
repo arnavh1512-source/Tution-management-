@@ -5,15 +5,17 @@ import { useDashboard, REMINDER_TEMPLATES, initials, av } from '../store'
 import { ScreenHeader, PrimaryButton } from './Shell'
 
 export function TimetableScreen() {
-  const { ttDay, timetableData, back, set, addTimetableEntry, deleteTimetableEntry, updateTimetableEntry, subjects, role } = useDashboard()
+  const { ttDay, timetableData, back, set, addTimetableEntry, deleteTimetableEntry, updateTimetableEntry, subjects, students, role } = useDashboard()
   const isAdmin = role === 'admin'
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<string[] | null>(null) // the original period being edited
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
   const [subject, setSubject] = useState('')
-  const [klass, setKlass] = useState('Class 10-B')
+  const [klass, setKlass] = useState('')
   const [room, setRoom] = useState('')
+  const classes = [...new Set([...students.map(s => s.klass), ...(klass ? [klass] : [])])].filter(Boolean)
+  const selKlass = klass || classes[0] || ''
   const days = (() => {
     const today = new Date()
     const monday = new Date(today)
@@ -27,12 +29,13 @@ export function TimetableScreen() {
   const periods = timetableData[ttDay] || []
   const subjectNames = subjects.map(s => s.name)
 
-  const resetForm = () => { setStartTime('09:00'); setEndTime('10:00'); setSubject(''); setRoom(''); setShowForm(false); setEditing(null) }
+  const resetForm = () => { setStartTime('09:00'); setEndTime('10:00'); setSubject(''); setKlass(''); setRoom(''); setShowForm(false); setEditing(null) }
 
   const handleAdd = () => {
+    if (!selKlass) return
     const subj = subject || subjectNames[0] || 'Free period'
-    if (editing) updateTimetableEntry(ttDay, editing, startTime, endTime, subj, klass, room)
-    else addTimetableEntry(ttDay, startTime, endTime, subj, klass, room)
+    if (editing) updateTimetableEntry(ttDay, editing, startTime, endTime, subj, selKlass, room)
+    else addTimetableEntry(ttDay, startTime, endTime, subj, selKlass, room)
     resetForm()
   }
 
@@ -94,7 +97,9 @@ export function TimetableScreen() {
           </div>
           <div className="grid grid-cols-2 gap-[11px]">
             <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label>
-              <input value={klass} onChange={e => setKlass(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
+              <select value={selKlass} onChange={e => setKlass(e.target.value)} disabled={classes.length === 0} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none disabled:opacity-60">
+                {classes.length ? classes.map(c => <option key={c}>{c}</option>) : <option value="">Add students first</option>}
+              </select>
             </div>
             <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Room</label>
               <input value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 1" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
@@ -212,33 +217,37 @@ export function AttendanceScreen() {
 
 export function ResultsScreen() {
   const { students, subjects, back, notify } = useDashboard()
-  const [klass, setKlass] = useState('Class 10-B')
+  const [klass, setKlass] = useState('')
   const [subject, setSubject] = useState('')
   const [testName, setTestName] = useState('Unit Test')
   const [maxMarks, setMaxMarks] = useState('50')
   const [marks, setMarks] = useState<Record<number, string>>({})
   const classes = [...new Set(students.map(s => s.klass))].filter(Boolean)
-  const roster = students.filter(s => s.klass === klass).map(s => s.name)
+  const selKlass = klass || classes[0] || ''
+  const roster = students.filter(s => s.klass === selKlass).map(s => s.name)
   const subjectNames = subjects.map(s => s.name)
   const selSubject = subject || subjectNames[0] || ''
 
   const handlePublish = async () => {
     if (!testName.trim()) { notify('Enter test name'); return }
+    if (!selKlass) { notify('Add students first'); return }
     if (!selSubject) { notify('Add a subject first (More → Subjects)'); return }
     const { supabase } = await import('../lib/supabase')
     const subjectId = useDashboard.getState().subjects.find(s => s.name === selSubject)?.dbId
     const { data: test, error } = await supabase.from('tests').insert({
-      name: testName, subject_id: subjectId ?? null, class: klass,
+      name: testName, subject_id: subjectId ?? null, class: selKlass,
       max_marks: Number(maxMarks) || 50, date: new Date().toISOString().split('T')[0],
     }).select().single()
     if (error || !test) { notify('Could not publish — try again'); return }
     const resultRows = Object.entries(marks).map(([idx, m]) => {
-      const student = students.filter(s => s.klass === klass)[Number(idx)]
+      const student = students.filter(s => s.klass === selKlass)[Number(idx)]
       if (!student?.dbId || !m) return null
       return { test_id: test.id, student_id: student.dbId, marks: Number(m) }
     }).filter(Boolean)
-    if (resultRows.length) await supabase.from('results').insert(resultRows as any[])
-    useDashboard.getState().notifyClass(klass, 'New results published', `${testName} · ${selSubject} — check your marks in the app`, '📊')
+    if (resultRows.length) {
+      await supabase.from('results').insert(resultRows as any[])
+      useDashboard.getState().notifyClass(selKlass, 'New results published', `${testName} · ${selSubject} — check your marks in the app`, '📊')
+    }
     notify('Results published & parents notified')
     setMarks({})
   }
@@ -249,7 +258,7 @@ export function ResultsScreen() {
 
       <div className="grid grid-cols-2 gap-[11px] mb-[13px]">
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label>
-          <select value={klass} onChange={e => setKlass(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
+          <select value={selKlass} onChange={e => setKlass(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
             {classes.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
@@ -266,7 +275,7 @@ export function ResultsScreen() {
 
       <div className="text-sm font-extrabold text-td-dark mb-3">Enter marks</div>
       {roster.length === 0 ? (
-        <div className="text-center text-td-muted text-sm py-8">No students in {klass}</div>
+        <div className="text-center text-td-muted text-sm py-8">No students in {selKlass || 'this class'}</div>
       ) : (
         <div className="flex flex-col gap-[9px] mb-5">
           {roster.map((name, i) => (
@@ -285,14 +294,16 @@ export function ResultsScreen() {
 }
 
 export function AssignmentsScreen() {
-  const { back, assignmentsList, saveAssignment, subjects } = useDashboard()
+  const { back, assignmentsList, saveAssignment, subjects, students } = useDashboard()
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('')
-  const [klass, setKlass] = useState('Class 10-B')
+  const [klass, setKlass] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [instructions, setInstructions] = useState('')
   const subjectNames = subjects.map(s => s.name)
   const selSubject = subject || subjectNames[0] || ''
+  const classes = [...new Set(students.map(s => s.klass))].filter(Boolean)
+  const selKlass = klass || classes[0] || ''
 
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
@@ -307,14 +318,14 @@ export function AssignmentsScreen() {
             </select>
           </div>
           <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Class</label>
-            <select value={klass} onChange={e => setKlass(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none">
-              <option>Class 10-B</option><option>Class 10-A</option><option>Class 9-A</option>
+            <select value={selKlass} onChange={e => setKlass(e.target.value)} disabled={classes.length === 0} className="w-full border border-td-border rounded-[14px] p-[13px] text-[13.5px] bg-white text-td-dark outline-none disabled:opacity-60">
+              {classes.length ? classes.map(c => <option key={c}>{c}</option>) : <option value="">Add students first</option>}
             </select>
           </div>
         </div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Due date</label><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" /></div>
         <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Instructions</label><textarea rows={3} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Describe the task..." className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none resize-none focus:border-td-primary" /></div>
-        <PrimaryButton onClick={() => { saveAssignment(title, selSubject, klass, dueDate, instructions); setTitle(''); setInstructions('') }}>Create &amp; notify class</PrimaryButton>
+        <PrimaryButton onClick={() => { if (!selKlass) return; saveAssignment(title, selSubject, selKlass, dueDate, instructions); setTitle(''); setInstructions('') }}>Create &amp; notify class</PrimaryButton>
       </div>
 
       <div className="text-[15px] font-extrabold text-td-dark mb-3">Active assignments</div>

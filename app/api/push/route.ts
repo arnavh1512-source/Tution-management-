@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const { data: userData } = await admin.auth.getUser(token)
   const uid = userData.user?.id
   if (!uid) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  const { data: me } = await admin.from('profiles').select('centre_id').eq('id', uid).single()
+  const { data: me } = await admin.from('profiles').select('centre_id, staff_status').eq('id', uid).single()
   const centre = me?.centre_id
   if (!centre) return NextResponse.json({ error: 'no centre' }, { status: 403 })
 
@@ -32,12 +32,18 @@ export async function POST(req: NextRequest) {
   const { studentCodes, notifyHead, title, body: text, url: link } = body as {
     studentCodes?: string[]; notifyHead?: boolean; title?: string; body?: string; url?: string
   }
-  if (!title) return NextResponse.json({ error: 'no title' }, { status: 400 })
+  if (!title || typeof title !== 'string' || title.length > 120) return NextResponse.json({ error: 'bad title' }, { status: 400 })
+  if (text !== undefined && (typeof text !== 'string' || text.length > 500)) return NextResponse.json({ error: 'bad body' }, { status: 400 })
+  if (studentCodes !== undefined && (!Array.isArray(studentCodes) || studentCodes.length > 1000 || studentCodes.some(c => typeof c !== 'string'))) {
+    return NextResponse.json({ error: 'bad targets' }, { status: 400 })
+  }
 
   const subs: Row[] = []
 
-  // Student targets — only students in the caller's centre.
+  // Student targets — approved staff only (pending teachers may only notifyHead),
+  // and only students in the caller's centre.
   if (studentCodes?.length) {
+    if (me?.staff_status !== 'approved') return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     const { data: students } = await admin.from('students').select('student_code').eq('centre_id', centre).in('student_code', studentCodes)
     const allowed = (students ?? []).map(s => s.student_code)
     if (allowed.length) {
@@ -56,7 +62,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const payload = JSON.stringify({ title, body: text ?? '', url: link ?? '/' })
+  // Only same-app relative paths in notification links.
+  const safeLink = typeof link === 'string' && link.startsWith('/') && !link.startsWith('//') ? link : '/'
+  const payload = JSON.stringify({ title, body: text ?? '', url: safeLink })
   const stale: string[] = []
   await Promise.all(subs.map(async (s) => {
     try {
