@@ -227,6 +227,7 @@ export function ResultsScreen() {
       return { test_id: test.id, student_id: student.dbId, marks: Number(m) }
     }).filter(Boolean)
     if (resultRows.length) await supabase.from('results').insert(resultRows as any[])
+    useDashboard.getState().notifyClass(klass, 'New results published', `${testName} · ${selSubject} — check your marks in the app`, '📊')
     notify('Results published & parents notified')
     setMarks({})
   }

@@ -94,6 +94,7 @@ interface Actions {
   saveMeeting: (title: string, type: string, date: string, time: string) => void
   saveAssignment: (title: string, subject: string, klass: string, dueDate: string, instructions: string) => void
   saveReminder: (type: string, message: string, targetClass: string, filter?: string) => void
+  notifyClass: (klass: string, title: string, detail: string, icon: string) => void
   saveStudentProfile: () => void
   addFee: (studentDbId: string, amount: number, period: string, dueDate: string) => void
   toggleFeeStatus: (idx: number) => void
@@ -247,6 +248,16 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     if (records.length) {
       supabase.from('attendance').upsert(records as any[], { onConflict: 'student_id,date' }).then(dbErr('save attendance', get().notify))
     }
+    // Tell only the absent students (their parents watch these devices).
+    const absent = studentNames
+      .map((name, i) => (att[i] === 'absent' ? students.find(s => s.name === name) : null))
+      .filter((s): s is NonNullable<typeof s> => !!s?.dbId)
+    if (absent.length) {
+      const rows = absent.map(s => ({ student_id: s.dbId, title: 'Marked absent today', detail: `${s.name} was marked absent. Please contact the centre if this is a mistake.`, icon: '🟡' }))
+      supabase.from('notifications').insert(rows).then(dbErr('send notifications', get().notify))
+      const codes = absent.map(s => s.id).filter(Boolean)
+      if (codes.length) sendPush({ studentCodes: codes, title: 'Marked absent today', body: 'Your ward was marked absent at the centre today.' }).then(() => {})
+    }
     get().notify(`Attendance saved · ${studentNames.length - Object.values(att).filter(v => v === 'absent').length} present`)
   },
 
@@ -278,6 +289,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       instructions: instructions || null, subject_id: subjectId ?? null,
     }).then(dbErr('save assignment', get().notify))
     set({ assignmentsList: [item, ...assignmentsList] })
+    get().notifyClass(klass, 'New homework', `${title} — due ${item.due}`, '📚')
     get().notify('Assignment created · class notified')
   },
 
@@ -308,6 +320,20 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     }))
     set((s) => ({ stuNotifications: [...newNotifs, ...s.stuNotifications] }))
     get().notify(`${type} reminder sent to ${targets.length} students`)
+  },
+
+  // Auto-notify students when staff adds content (homework, results, notes,
+  // absence). Inserts in-app notification rows and fires a best-effort push.
+  notifyClass: (klass, title, detail, icon) => {
+    const { students } = get()
+    let targets = students.filter(s => s.dbId)
+    if (klass && klass !== 'all') targets = targets.filter(s => s.klass === klass)
+    if (!targets.length) return
+    const rows = targets.map(s => ({ student_id: s.dbId, title, detail, icon }))
+    supabase.from('notifications').insert(rows).then(dbErr('send notifications', get().notify))
+    const codes = targets.map(s => s.id).filter(Boolean)
+    if (codes.length) sendPush({ studentCodes: codes, title, body: detail })
+      .then(r => { if (!r.error) get().notify(`Notified ${targets.length} student(s) · push to ${r.sent} device(s)`) })
   },
 
   saveStudentProfile: async () => {
@@ -451,6 +477,7 @@ export const useDashboard = create<State & Actions>((set, get) => ({
     }).select('id').single()
     if (error) { get().notify('Could not save note'); return }
     set((s) => ({ notesList: [{ dbId: data.id, ...n }, ...s.notesList] }))
+    get().notifyClass(n.klass, 'New study material', n.subject ? `${n.title.trim()} · ${n.subject}` : n.title.trim(), '📄')
     get().notify('Note shared with the class')
   },
 
