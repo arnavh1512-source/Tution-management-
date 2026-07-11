@@ -100,6 +100,7 @@ interface Actions {
   toggleFeeStatus: (idx: number) => void
   addTimetableEntry: (day: string, startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   deleteTimetableEntry: (day: string, p: string[]) => void
+  updateTimetableEntry: (day: string, oldP: string[], startTime: string, endTime: string, subject: string, klass: string, room: string) => void
   addBranch: (name: string, address: string, isMain: boolean) => void
   deleteBranch: (dbId: string) => void
   addSubject: (name: string) => void
@@ -403,6 +404,18 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       subject, class: klass, room: room || null,
     }).then(dbErr('add timetable', get().notify))
     get().notify(`Period added: ${subject} on ${day}`)
+  },
+
+  updateTimetableEntry: (day, oldP, startTime, endTime, subject, klass, room) => {
+    const entry = [startTime, endTime, subject, klass, room]
+    set((s) => ({ timetableData: { ...s.timetableData, [day]: (s.timetableData[day] ?? [])
+      .map(x => (x[0] === oldP[0] && x[1] === oldP[1] && x[2] === oldP[2] && x[3] === oldP[3]) ? entry : x)
+      .sort((a, b) => a[0].localeCompare(b[0])) } }))
+    supabase.from('timetable')
+      .update({ start_time: startTime, end_time: endTime, subject, class: klass, room: room || null })
+      .eq('day', day).eq('start_time', oldP[0]).eq('end_time', oldP[1]).eq('subject', oldP[2]).eq('class', oldP[3])
+      .then(dbErr('update period', get().notify))
+    get().notify(`Period updated: ${subject} on ${day}`)
   },
 
   deleteTimetableEntry: (day, p) => {

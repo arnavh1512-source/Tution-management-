@@ -5,9 +5,10 @@ import { useDashboard, REMINDER_TEMPLATES, initials, av } from '../store'
 import { ScreenHeader, PrimaryButton } from './Shell'
 
 export function TimetableScreen() {
-  const { ttDay, timetableData, back, set, addTimetableEntry, deleteTimetableEntry, subjects, role } = useDashboard()
+  const { ttDay, timetableData, back, set, addTimetableEntry, deleteTimetableEntry, updateTimetableEntry, subjects, role } = useDashboard()
   const isAdmin = role === 'admin'
   const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<string[] | null>(null) // the original period being edited
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
   const [subject, setSubject] = useState('')
@@ -26,9 +27,18 @@ export function TimetableScreen() {
   const periods = timetableData[ttDay] || []
   const subjectNames = subjects.map(s => s.name)
 
+  const resetForm = () => { setStartTime('09:00'); setEndTime('10:00'); setSubject(''); setRoom(''); setShowForm(false); setEditing(null) }
+
   const handleAdd = () => {
-    addTimetableEntry(ttDay, startTime, endTime, subject || subjectNames[0] || 'Free period', klass, room)
-    setStartTime('09:00'); setEndTime('10:00'); setSubject(''); setRoom(''); setShowForm(false)
+    const subj = subject || subjectNames[0] || 'Free period'
+    if (editing) updateTimetableEntry(ttDay, editing, startTime, endTime, subj, klass, room)
+    else addTimetableEntry(ttDay, startTime, endTime, subj, klass, room)
+    resetForm()
+  }
+
+  const startEdit = (p: string[]) => {
+    setStartTime(p[0]); setEndTime(p[1]); setSubject(p[2]); setKlass(p[3]); setRoom(p[4] ?? '')
+    setEditing(p); setShowForm(true)
   }
 
   const periodStyle = (p: string[]) => {
@@ -48,7 +58,7 @@ export function TimetableScreen() {
   return (
     <div className="animate-[pop_.35s_ease] px-5 pt-1.5 pb-6">
       <ScreenHeader title="Timetable" onBack={back} right={isAdmin ? (
-        <button onClick={() => setShowForm(f => !f)} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
+        <button onClick={() => (showForm ? resetForm() : setShowForm(true))} className="border-none bg-td-primary text-white text-[13px] font-bold py-2.5 px-[15px] rounded-[14px] cursor-pointer flex items-center gap-1.5">
           <span className="text-base leading-none">{showForm ? '×' : '+'}</span> {showForm ? 'Close' : 'Add'}
         </button>
       ) : undefined} />
@@ -67,7 +77,7 @@ export function TimetableScreen() {
 
       {isAdmin && showForm && (
         <div className="bg-white border border-td-border rounded-[20px] p-[17px] mb-[18px] flex flex-col gap-3.5">
-          <div className="text-sm font-extrabold text-td-dark">Add period — {dayNames[ttDay]}</div>
+          <div className="text-sm font-extrabold text-td-dark">{editing ? 'Edit' : 'Add'} period — {dayNames[ttDay]}</div>
           <div className="grid grid-cols-2 gap-[11px]">
             <div><label className="text-xs font-bold text-td-muted mb-[7px] block">Start</label>
               <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
@@ -90,7 +100,7 @@ export function TimetableScreen() {
               <input value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 1" className="w-full border border-td-border rounded-[14px] p-[13px] text-sm text-td-dark outline-none focus:border-td-primary" />
             </div>
           </div>
-          <PrimaryButton onClick={handleAdd}>Add period</PrimaryButton>
+          <PrimaryButton onClick={handleAdd}>{editing ? 'Save changes' : 'Add period'}</PrimaryButton>
         </div>
       )}
 
@@ -118,6 +128,7 @@ export function TimetableScreen() {
                       <div className="text-sm font-extrabold" style={{ color: s.titleColor }}>{p[2]}</div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-[10.5px] font-bold py-1 px-[9px] rounded-[20px]" style={{ color: s.pillColor, background: s.pillBg }}>{s.tag}</span>
+                        {isAdmin && <button onClick={() => startEdit(p)} className="w-6 h-6 rounded-full border border-[#dbe6fa] bg-[#eaf1fc] text-td-primary flex items-center justify-center cursor-pointer text-[12px] leading-none">✎</button>}
                         {isAdmin && <button onClick={() => deleteTimetableEntry(ttDay, p)} className="w-6 h-6 rounded-full border border-[#f4d8cf] bg-[#fdf3f0] text-td-red flex items-center justify-center cursor-pointer text-[15px] leading-none">×</button>}
                       </div>
                     </div>
