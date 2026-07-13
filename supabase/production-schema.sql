@@ -205,6 +205,15 @@ create table if not exists public.code_attempts (
   at timestamptz not null default now()
 );
 create index if not exists code_attempts_at_idx on public.code_attempts (at);
+-- user_id scopes join_centre throttling per account (null for anon student-code attempts).
+alter table public.code_attempts add column if not exists user_id uuid;
+
+-- One centre per owner: closes the create_centre check-then-insert race.
+create unique index if not exists centres_owner_unique on public.centres (owner_id);
+
+-- No duplicate periods; room is part of a period's identity (nulls normalized).
+create unique index if not exists timetable_period_room_unique
+  on public.timetable (centre_id, day, start_time, end_time, subject, class, coalesce(room,''));
 
 create table if not exists public.notes (
   id uuid primary key default uuid_generate_v4(),
@@ -260,7 +269,11 @@ begin
   if length(coalesce(trim(p_name),'')) < 2 or length(trim(p_name)) > 80 then raise exception 'Enter a centre name (2-80 characters)'; end if;
   if (select centre_id from public.profiles where id=auth.uid()) is not null then raise exception 'You already belong to a centre'; end if;
   loop v_code := upper(substr(replace(gen_random_uuid()::text,'-',''),1,10)); exit when not exists (select 1 from public.centres where join_code=v_code); end loop;
-  insert into public.centres (name, join_code, owner_id) values (trim(p_name), v_code, auth.uid()) returning id into v_id;
+  begin
+    insert into public.centres (name, join_code, owner_id) values (trim(p_name), v_code, auth.uid()) returning id into v_id;
+  exception when unique_violation then
+    raise exception 'You already created a centre';
+  end;
   update public.profiles set role='admin', staff_status='approved', centre_id=v_id, head_requested=false where id=auth.uid();
   return json_build_object('centre_id',v_id,'join_code',v_code,'name',trim(p_name));
 end; $$;
@@ -269,8 +282,17 @@ create or replace function public.join_centre(p_code text)
 returns json language plpgsql security definer set search_path = public as $$
 declare v_id uuid; v_name text;
 begin
+  -- Per-account throttle: 5 failed code attempts per 15 minutes.
+  delete from public.code_attempts where at < now() - interval '15 minutes';
+  if (select count(*) from public.code_attempts
+      where user_id = auth.uid() and at > now() - interval '15 minutes') >= 5 then
+    raise exception 'Too many attempts — try again in 15 minutes';
+  end if;
   select id, name into v_id, v_name from public.centres where join_code=upper(trim(coalesce(p_code,'')));
-  if v_id is null then raise exception 'Invalid centre code'; end if;
+  if v_id is null then
+    insert into public.code_attempts (user_id) values (auth.uid());
+    raise exception 'Invalid centre code';
+  end if;
   if (select centre_id from public.profiles where id=auth.uid()) is not null then raise exception 'You already belong to a centre'; end if;
   update public.profiles set role='teacher', staff_status='pending', centre_id=v_id where id=auth.uid();
   return json_build_object('centre_id',v_id,'name',v_name);
