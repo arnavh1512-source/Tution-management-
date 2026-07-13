@@ -14,6 +14,18 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) webpush.setVapidDetails(VAPID_SUBJECT, VAPID_
 
 type Row = { endpoint: string; p256dh: string; auth: string }
 
+// Best-effort per-caller rate limit (per serverless instance): 30 sends/min.
+const RATE_LIMIT = 30, RATE_WINDOW_MS = 60_000
+const callLog = new Map<string, number[]>()
+function rateLimited(uid: string): boolean {
+  const now = Date.now()
+  const recent = (callLog.get(uid) ?? []).filter(t => now - t < RATE_WINDOW_MS)
+  if (recent.length >= RATE_LIMIT) { callLog.set(uid, recent); return true }
+  recent.push(now); callLog.set(uid, recent)
+  if (callLog.size > 1000) callLog.clear() // cap memory on long-lived instances
+  return false
+}
+
 export async function POST(req: NextRequest) {
   if (!url || !serviceKey || !VAPID_PRIVATE) return NextResponse.json({ error: 'not configured' }, { status: 500 })
 
@@ -24,6 +36,7 @@ export async function POST(req: NextRequest) {
   const { data: userData } = await admin.auth.getUser(token)
   const uid = userData.user?.id
   if (!uid) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (rateLimited(uid)) return NextResponse.json({ error: 'too many requests — slow down' }, { status: 429 })
   const { data: me } = await admin.from('profiles').select('centre_id, staff_status').eq('id', uid).single()
   const centre = me?.centre_id
   if (!centre) return NextResponse.json({ error: 'no centre' }, { status: 403 })

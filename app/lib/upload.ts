@@ -9,8 +9,9 @@ const ALLOWED = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
 export async function uploadNoteFile(file: File): Promise<{ url?: string; error?: string }> {
   if (file.size > MAX_BYTES) return { error: 'File too large (max 10 MB)' }
   if (!ALLOWED.includes(file.type)) return { error: 'Only PDF or image files' }
-  const ext = file.name.split('.').pop() || 'bin'
-  const path = `${crypto.randomUUID()}.${ext}`
+  // Extension derives from the validated MIME type, never the filename.
+  const EXT: Record<string, string> = { 'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+  const path = `${crypto.randomUUID()}.${EXT[file.type]}`
   const { error } = await supabase.storage.from('notes').upload(path, file, {
     contentType: file.type, upsert: false,
   })
