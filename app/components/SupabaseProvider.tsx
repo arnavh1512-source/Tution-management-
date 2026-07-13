@@ -98,18 +98,20 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       { data: subjects },
       { data: attendance },
     ] = await Promise.all([
-      supabase.from('teachers').select('*').order('created_at', { ascending: false }),
-      supabase.from('students').select('id,name,class,school,parent_contact,student_code,fee_status,address,branch_id,profile_id,created_at').order('created_at', { ascending: false }),
-      supabase.from('branches').select('*').order('is_main', { ascending: false }),
-      supabase.from('meetings').select('*').order('date', { ascending: false }),
-      supabase.from('assignments').select('*').order('due_date', { ascending: false }),
-      supabase.from('timetable').select('*').order('start_time', { ascending: true }),
-      supabase.from('fees').select('*').order('due_date', { ascending: false }),
-      supabase.from('tests').select('*').order('date', { ascending: false }),
-      supabase.from('results').select('*'),
-      supabase.from('notifications').select('*').order('created_at', { ascending: false }),
-      supabase.from('subjects').select('*'),
-      supabase.from('attendance').select('*').order('date', { ascending: false }),
+      // Defensive caps: orderings put the newest rows first, so a centre that
+      // outgrows a cap loses only the oldest tail, never current data.
+      supabase.from('teachers').select('*').order('created_at', { ascending: false }).limit(300),
+      supabase.from('students').select('id,name,class,school,parent_contact,student_code,fee_status,address,branch_id,profile_id,created_at').order('created_at', { ascending: false }).limit(2000),
+      supabase.from('branches').select('*').order('is_main', { ascending: false }).limit(50),
+      supabase.from('meetings').select('*').order('date', { ascending: false }).limit(200),
+      supabase.from('assignments').select('*').order('due_date', { ascending: false }).limit(500),
+      supabase.from('timetable').select('*').order('start_time', { ascending: true }).limit(1000),
+      supabase.from('fees').select('*').order('due_date', { ascending: false }).limit(5000),
+      supabase.from('tests').select('*').order('date', { ascending: false }).limit(1000),
+      supabase.from('results').select('*').limit(20000),
+      supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('subjects').select('*').limit(100),
+      supabase.from('attendance').select('*').order('date', { ascending: false }).limit(20000),
     ])
 
     const mappedTeachers = (teachers ?? []).map(mapTeacher)

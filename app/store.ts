@@ -247,7 +247,16 @@ export const useDashboard = create<State & Actions>((set, get) => ({
       return { student_id: student.dbId, date: new Date().toISOString().split('T')[0], status: att[i] === 'absent' ? 'Absent' : 'Present' }
     }).filter((r): r is NonNullable<typeof r> => r !== null)
     if (records.length) {
-      supabase.from('attendance').upsert(records, { onConflict: 'student_id,date' }).then(dbErr('save attendance', get().notify))
+      // Warn when overwriting: another teacher may have marked this class already.
+      const today = new Date().toISOString().split('T')[0]
+      const ids = records.map(r => r!.student_id)
+      supabase.from('attendance').select('id').eq('date', today).in('student_id', ids).limit(1).then(({ data }) => {
+        const already = !!data?.length
+        supabase.from('attendance').upsert(records, { onConflict: 'student_id,date' }).then((res) => {
+          dbErr('save attendance', get().notify)(res)
+          if (already && !res.error) get().notify('Note: today’s attendance was already marked — it has been updated')
+        })
+      })
     }
     // Tell only the absent students (their parents watch these devices).
     const absent = studentNames
